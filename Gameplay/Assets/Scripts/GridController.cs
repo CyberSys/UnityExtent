@@ -14,16 +14,6 @@ public class GridController : MonoBehaviour
     public int rowNumber = 10;
     public int columnNumber = 10;
 
-    public class GridCell
-    {
-        public Vector3 centre;
-
-        public GridCell(Vector3 centrePosition)
-        {
-            centre = centrePosition;
-        }
-    }
-
     private List<List<GridCell>> _grid = new List<List<GridCell>>();
 
     public GridCell GetCell(int x, int y)
@@ -50,7 +40,7 @@ public class GridController : MonoBehaviour
         
         return null;
     }
-    
+
     // Start is called before the first frame update
     void Start()
     {
@@ -69,10 +59,13 @@ public class GridController : MonoBehaviour
             List<GridCell> row = new List<GridCell>();
             for (int j = 0; j < columnNumber; j++)
             {
-                GridCell newCell = new GridCell(new Vector3(i + 0.5f, 0.0f, j + 0.5f));
-                row.Add(newCell);
+                GameObject cellPrefab = Instantiate(this.cellPrefab, new Vector3(i + 0.5f, 0.0f, j + 0.5f), Quaternion.identity);
+
+                GridCell prefabGridCell = cellPrefab.GetComponent<GridCell>();
+
+                prefabGridCell.centre = new Vector3(i + 0.5f, 0.0f, j + 0.5f);
                 
-                GameObject cellPrefab = Instantiate(this.cellPrefab, newCell.centre, Quaternion.identity);
+                row.Add(prefabGridCell);
 
                 cellPrefab.transform.parent = rowObject.transform;
 
@@ -80,7 +73,7 @@ public class GridController : MonoBehaviour
 
                 if (j == rowNumber - 1)
                 {
-                    GETChildGameObjectWithName(cellPrefab, "Top").GetComponent<MeshRenderer>().enabled = true;
+                    GETChildGameObjectWithName(cellPrefab, "Forward").GetComponent<MeshRenderer>().enabled = true;
                 }
                 
                 if (i == columnNumber - 1)
@@ -91,8 +84,10 @@ public class GridController : MonoBehaviour
             
             _grid.Add(row);
         }
-        
-        player.GetComponent<AgentController>().SetStartingCell(0,0);
+
+        AgentController playerAgent = player.GetComponent<AgentController>();
+        playerAgent.SetMovementDirection(Vector3.forward);
+        playerAgent.SetStartingCell(0,0);
     }
 
     // Update is called once per frame

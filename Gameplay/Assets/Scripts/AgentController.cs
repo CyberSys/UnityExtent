@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 public class AgentController : MonoBehaviour
 {
@@ -83,21 +84,62 @@ public class AgentController : MonoBehaviour
 
     private List<MovementAction> movementActions;
     
-    public struct Cell
+    private GridCell.GridPosition _startCell = new GridCell.GridPosition(0,0);
+
+    public GridCell.GridPosition GetStartingCell()
     {
-        public Cell(int x, int y)
+        return _startCell;
+    }
+    
+    public void SetStartingCell(int x, int y)
+    {
+        if (GridController == null)
         {
-            X = x;
-            Y = y;
+            GridController = GameObject.FindObjectOfType<GridController>();
         }
+        transform.position = GridController.GetCell(x,y).centre;
 
-        public int X { get; }
-        public int Y { get; }
-
-        public override string ToString() => $"({X}, {Y})";
+        SetCurrentCell(x, y);
     }
 
-    public Cell startCell = new Cell(0,0);
+    private GridCell _currentCell;
+
+    public GridCell GetCurrentCell()
+    {
+        return _currentCell;
+    }
+
+    public void SetCurrentCell(int x, int y)
+    {
+        if(_currentCell != null && _currentCell.agentsInCell.Count > 0)
+            _currentCell.agentsInCell.Remove(this);
+        _currentCell = GridController.GetCell(x, y);
+        _currentCell.agentsInCell.Add(this);
+        
+        if(MovementDirection == Vector3.left)
+            SetNextCell(x-1, y);
+        if(MovementDirection == Vector3.forward)
+            SetNextCell(x, y+1);
+        if(MovementDirection == Vector3.right)
+            SetNextCell(x+1, y);
+        if(MovementDirection == Vector3.down)
+            SetNextCell(x, y-1);
+        
+        //_nextCell
+    }
+    
+    private GridCell _nextCell;
+
+    public GridCell GetNextCell()
+    {
+        return _nextCell;
+    }
+
+    public void SetNextCell(int x, int y)
+    {
+        _nextCell = GridController.GetCell(x, y);
+        _nextCell.ToggleNextCellIndicator();
+    }
 
     // Start is called before the first frame update
     private void Start()
@@ -110,14 +152,7 @@ public class AgentController : MonoBehaviour
         GridController = GameObject.FindObjectOfType<GridController>();
     }
 
-    public void SetStartingCell(int x, int y)
-    {
-        if (GridController == null)
-        {
-            GridController = GameObject.FindObjectOfType<GridController>();
-        }
-        transform.position = GridController.GetCell(x,y).centre;
-    }
+    
     public void SetMovementDirection(Vector3 movement)
     {
         MovementDirection = movement;
@@ -125,7 +160,7 @@ public class AgentController : MonoBehaviour
     
     Vector3 GetInputTranslationDirection()
     {
-        Vector3 newMovementDirection = Vector3.zero;
+        Vector3 newMovementDirection = MovementDirection;
         // if (Input.GetKey(KeyCode.W))
         // {
         //     direction += Vector3.forward;
@@ -137,24 +172,24 @@ public class AgentController : MonoBehaviour
         if (Input.GetKey(KeyCode.A))
         {
             if(MovementDirection == Vector3.left)
-                newMovementDirection += Vector3.down;
+                newMovementDirection = Vector3.down;
             if(MovementDirection == Vector3.forward)
-                newMovementDirection += Vector3.left;
+                newMovementDirection = Vector3.left;
             if(MovementDirection == Vector3.right)
-                newMovementDirection += Vector3.forward;
+                newMovementDirection = Vector3.forward;
             if(MovementDirection == Vector3.down)
-                newMovementDirection += Vector3.right;
+                newMovementDirection = Vector3.right;
         }
         if (Input.GetKey(KeyCode.D))
         {
             if(MovementDirection == Vector3.left)
-                newMovementDirection += Vector3.forward;
+                newMovementDirection = Vector3.forward;
             if(MovementDirection == Vector3.forward)
-                newMovementDirection += Vector3.right;
+                newMovementDirection = Vector3.right;
             if(MovementDirection == Vector3.right)
-                newMovementDirection += Vector3.down;
+                newMovementDirection = Vector3.down;
             if(MovementDirection == Vector3.down)
-                newMovementDirection += Vector3.left;
+                newMovementDirection = Vector3.left;
         }
         // if (Input.GetKey(KeyCode.Q))
         // {
@@ -166,11 +201,22 @@ public class AgentController : MonoBehaviour
         // }
         return newMovementDirection;
     }
+    
+    //Detect collisions between the GameObjects with Colliders attached
+    void OnTriggerEnter(Collider other)
+    {
+        Debug.Log("Player entered: " + other.gameObject.name);
+    }
+
+    void OnTriggerExit(Collider other)
+    {
+        Debug.Log("Player left: " + other.gameObject.name);
+    }
 
     void FixedUpdate ()
     {
         if (GetInputTranslationDirection() != Vector3.zero)
-            MovementDirection = GetInputTranslationDirection();
+            SetMovementDirection(GetInputTranslationDirection());
         
         if(MovementDirection == Vector3.right)
             transform.rotation = Quaternion.Euler(0,90,0);
@@ -195,6 +241,6 @@ public class AgentController : MonoBehaviour
             Mathf.Clamp (GetComponent<Rigidbody>().position.z, BoxCollider.bounds.min.z, BoxCollider.bounds.max.z)
         );
 
-        //GetComponent<Rigidbody>().rotation = Quaternion.Euler (0.0f, 0.0f, GetComponent<Rigidbody>().velocity.x * -Tilt);
+        GetComponent<Rigidbody>().rotation = Quaternion.Euler (0.0f, 0.0f, GetComponent<Rigidbody>().velocity.x * -Tilt);
     }
 }
