@@ -33,13 +33,20 @@ public class GridCell : MonoBehaviour
 
     public List<AgentController> agentsInCell;
 
+    private bool nextCell = false;
+
     public GridCell(Vector3 centrePosition)
     {
         centre = centrePosition;
     }
 
+    public bool IsNextCell()
+    {
+        return nextCell;
+    }
     public void ToggleNextCellIndicator()
     {
-        GETChildGameObjectWithName(gameObject, "Next").GetComponent<MeshRenderer>().enabled = true;
+        nextCell = !nextCell;
+        GETChildGameObjectWithName(gameObject, "Next").GetComponent<MeshRenderer>().enabled = nextCell;
     }
 }

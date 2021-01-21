@@ -111,8 +111,6 @@ public class AgentController : MonoBehaviour
 
     public void SetCurrentCell(int x, int y)
     {
-        if(_currentCell != null && _currentCell.agentsInCell.Count > 0)
-            _currentCell.agentsInCell.Remove(this);
         _currentCell = GridController.GetCell(x, y);
         _currentCell.agentsInCell.Add(this);
         
@@ -138,6 +136,12 @@ public class AgentController : MonoBehaviour
     public void SetNextCell(int x, int y)
     {
         _nextCell = GridController.GetCell(x, y);
+        _nextCell.ToggleNextCellIndicator();
+    }
+    
+    public void SetNextCell(GridCell nextCell)
+    {
+        _nextCell = nextCell;
         _nextCell.ToggleNextCellIndicator();
     }
 
@@ -206,6 +210,21 @@ public class AgentController : MonoBehaviour
     void OnTriggerEnter(Collider other)
     {
         Debug.Log("Player entered: " + other.gameObject.name);
+        
+        // leave previous current and next
+        if (_currentCell != null && _currentCell.agentsInCell.Count > 0)
+        {
+            _currentCell.agentsInCell.Remove(this);
+        }
+
+        if (_nextCell != null && _nextCell.IsNextCell())
+        {
+            _nextCell.ToggleNextCellIndicator();
+            _nextCell.agentsInCell.Remove(this);
+        }
+
+        SetNextCell(other.gameObject.GetComponent<GridCell>());
+        // enter new cells
     }
 
     void OnTriggerExit(Collider other)
