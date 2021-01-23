@@ -337,6 +337,8 @@ public class AgentController : MonoBehaviour
         }
 
         SetNextCell(other.gameObject.GetComponent<GridCell>());
+        
+        // bool movingTowards = isMovingTowards(_currentCell.centre, transform.position, GetComponent<Rigidbody>().velocity);
         // enter new cells
     }
 
@@ -351,15 +353,16 @@ public class AgentController : MonoBehaviour
             throw new InvalidOperationException("Player leaving grid.");
         }
     }
+    
+    private bool isMovingTowards(Vector3 testPoint, Vector3 objectPosition, Vector3 objectVelocty) {
+        Vector3 toPoint = testPoint - objectPosition; //a vector going from your obect to the point
+        float result = Vector3.Dot(toPoint, objectVelocty);
+        return result >= 0;
+    }
     void FixedUpdate ()
     {
         _inputController.Update();
 
-        MovementAction.Movement movement = _inputController.ProccessMovementQueue();
-
-        if (movement != MovementAction.Movement.Forward)
-            ChangeMovementDirection(movement);
-        
         GetComponent<Rigidbody>().velocity = MovementDirection * Speed;
 
         GetComponent<Rigidbody>().position = new Vector3 
@@ -379,5 +382,14 @@ public class AgentController : MonoBehaviour
             transform.rotation = Quaternion.Euler(0,0,0);
         if(MovementDirection == Vector3.back)
             transform.rotation = Quaternion.Euler(0,180,0);
+            
+        bool movingTowards = isMovingTowards(_nextCell.centre, transform.position, GetComponent<Rigidbody>().velocity);
+        if (!movingTowards)
+        {
+            MovementAction.Movement movement = _inputController.ProccessMovementQueue();
+            
+            if (movement != MovementAction.Movement.Forward)
+                ChangeMovementDirection(movement);
+        }
     }
 }
