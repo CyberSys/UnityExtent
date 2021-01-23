@@ -35,11 +35,22 @@ public class GridCell : MonoBehaviour
 
     private bool nextCell = false;
 
+    private bool spawn = false;
+
     public GridCell(Vector3 centrePosition)
     {
         centre = centrePosition;
     }
 
+    public void SetSpawn(bool isSpawn)
+    {
+        spawn = isSpawn;
+    }
+
+    public bool IsSpawn()
+    {
+        return spawn;
+    }
     public bool IsNextCell()
     {
         return nextCell;
