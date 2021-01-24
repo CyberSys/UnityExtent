@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -40,6 +41,9 @@ public class GridCell : MonoBehaviour
     public GridCell(Vector3 centrePosition)
     {
         centre = centrePosition;
+        int x = (int) Math.Floor(centrePosition.x);
+        int y = (int) Math.Floor(centrePosition.y);
+        gridPosition = new GridPosition(x,y);
     }
 
     public void SetSpawn(bool isSpawn)

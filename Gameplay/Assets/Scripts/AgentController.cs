@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.PlayerLoop;
+using UnityEngine.UI;
 
 public class AgentAction
 {
@@ -182,6 +183,8 @@ public class AgentController : MonoBehaviour
     
     private GridCell.GridPosition _startCell = new GridCell.GridPosition(0,0);
 
+    public Text DebugText;
+
     public GridCell.GridPosition GetStartingCell()
     {
         return _startCell;
@@ -221,6 +224,20 @@ public class AgentController : MonoBehaviour
             SetNextCell(x, y-1);
     }
     
+    public void SetCurrentCell(GridCell currentCell)
+    {
+        _currentCell = currentCell;
+        
+        if(MovementDirection == Vector3.left)
+            SetNextCell(_currentCell.gridPosition.X-1, _currentCell.gridPosition.Y);
+        if(MovementDirection == Vector3.forward)
+            SetNextCell(_currentCell.gridPosition.X, _currentCell.gridPosition.Y+1);
+        if(MovementDirection == Vector3.right)
+            SetNextCell(_currentCell.gridPosition.X+1, _currentCell.gridPosition.Y);
+        if(MovementDirection == Vector3.down)
+            SetNextCell(_currentCell.gridPosition.X, _currentCell.gridPosition.Y-1);
+    }
+    
     private GridCell _nextCell;
 
     public GridCell GetNextCell()
@@ -230,14 +247,26 @@ public class AgentController : MonoBehaviour
 
     public void SetNextCell(int x, int y)
     {
-        _nextCell = GridController.GetCell(x, y);
-        _nextCell.ToggleNextCellIndicator();
+        if (_nextCell.gridPosition.X != x && _nextCell.gridPosition.Y != y || _nextCell == null)
+        {
+            if(_nextCell != null && _nextCell.IsNextCell())
+                _nextCell.ToggleNextCellIndicator();
+            
+            _nextCell = GridController.GetCell(x, y);
+            _nextCell.ToggleNextCellIndicator();
+        }
     }
     
     public void SetNextCell(GridCell nextCell)
     {
-        _nextCell = nextCell;
-        _nextCell.ToggleNextCellIndicator();
+        if (_nextCell != nextCell || _nextCell == null)
+        {
+            if (_nextCell != null && _nextCell.IsNextCell())
+                _nextCell.ToggleNextCellIndicator();
+
+            _nextCell = nextCell;
+            _nextCell.ToggleNextCellIndicator();
+        }
     }
     
     private GridCell _previousCell;
@@ -270,6 +299,17 @@ public class AgentController : MonoBehaviour
         GridController = GameObject.FindObjectOfType<GridController>();
     }
 
+    public void AdjustPosition()
+    {
+        if (MovementDirection == Vector3.right)
+            GetComponent<Rigidbody>().position = new Vector3(GetComponent<Rigidbody>().position.x, GetComponent<Rigidbody>().position.y, _currentCell.centre.z);
+        if(MovementDirection == Vector3.left)
+            GetComponent<Rigidbody>().position = new Vector3(GetComponent<Rigidbody>().position.x, GetComponent<Rigidbody>().position.y, _currentCell.centre.z);
+        if(MovementDirection == Vector3.forward)
+            GetComponent<Rigidbody>().position = new Vector3(_currentCell.centre.x, GetComponent<Rigidbody>().position.y, GetComponent<Rigidbody>().position.z);
+        if(MovementDirection == Vector3.back)
+            GetComponent<Rigidbody>().position = new Vector3(_currentCell.centre.x, GetComponent<Rigidbody>().position.y, GetComponent<Rigidbody>().position.z);
+    }
     public void ChangeMovementDirection(MovementAction.Movement newMovement)
     {
         if (MovementDirection == Vector3.forward)
@@ -315,21 +355,19 @@ public class AgentController : MonoBehaviour
     }
     
     //Detect collisions between the GameObjects with Colliders attached
+    
+    // TODO this needs changing
+    // it is too quickly moving from current cell to next cell
+    // there should be a check to make sure that the player is more than 
+    // half way into next slide, before changing next to current
+    // and current to previous
     void OnTriggerEnter(Collider other)
     {
         // Debug.Log("Player entered: " + other.gameObject.name);
         
-        // leave previous current and next
-        if (_currentCell != null && _currentCell.agentsInCell.Count > 0)
-        {
-            _currentCell.agentsInCell.Remove(this);
-            if (_currentCell.IsSpawn())
-            {
-                _currentCell.SetSpawn(false);
-            }
-            SetPreviousCell(_currentCell);
-        }
-
+        // should also check based on direction travelling
+        // at the moment turning close to the corner of a cell
+        // could mean entering 3 cells and this would be wrong
         if (_nextCell != null && _nextCell.IsNextCell())
         {
             _nextCell.ToggleNextCellIndicator();
@@ -382,14 +420,54 @@ public class AgentController : MonoBehaviour
             transform.rotation = Quaternion.Euler(0,0,0);
         if(MovementDirection == Vector3.back)
             transform.rotation = Quaternion.Euler(0,180,0);
-            
-        bool movingTowards = isMovingTowards(_nextCell.centre, transform.position, GetComponent<Rigidbody>().velocity);
-        if (!movingTowards)
+
+        
+        float distanceToCurrentCellCentre = Vector3.Distance(_currentCell.centre, transform.position);
+        float distanceToNextCellCentre = Vector3.Distance(_nextCell.centre, transform.position);
+        
+        //bool movingTowards = isMovingTowards(_currentCell.centre, transform.position, GetComponent<Rigidbody>().velocity);
+
+        //if (!movingTowards)
+        if(distanceToCurrentCellCentre < 0.01f)
         {
             MovementAction.Movement movement = _inputController.ProccessMovementQueue();
-            
+
             if (movement != MovementAction.Movement.Forward)
+            {
                 ChangeMovementDirection(movement);
+            }
+        }
+        else
+        {
+            AdjustPosition();
+        }
+
+        if (distanceToNextCellCentre < distanceToCurrentCellCentre)
+        {
+            // leave previous current and next
+            // this should be shifted into the update where there is a check to see
+            // if the player is more than half way into the cell
+            // and if the player is traveling in it's direction
+            if (_currentCell != null && _currentCell.agentsInCell.Count > 0)
+            {
+                _currentCell.agentsInCell.Remove(this);
+                if (_currentCell.IsSpawn())
+                {
+                    _currentCell.SetSpawn(false);
+                }
+                SetPreviousCell(_currentCell);
+            }
+            
+            SetCurrentCell(_nextCell);
+        }
+
+        if (DebugText != null)
+        {
+            // DebugText.text = GetComponent<Rigidbody>().position.ToString();
+            // DebugText.text += "\n " + _currentCell.centre;
+            
+            // DebugText.text = "( " + _currentCell.centre.x + ", " + _currentCell.centre.y + ", " + _currentCell.centre.z + " )";
+            DebugText.text = _currentCell.gridPosition.ToString();
         }
     }
 }

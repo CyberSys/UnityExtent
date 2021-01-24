@@ -64,6 +64,8 @@ public class GridController : MonoBehaviour
                 GridCell prefabGridCell = cellPrefab.GetComponent<GridCell>();
 
                 prefabGridCell.centre = new Vector3(i + 0.5f, 0.0f, j + 0.5f);
+
+                prefabGridCell.gridPosition = new GridCell.GridPosition(i, j);
                 
                 row.Add(prefabGridCell);
 
