@@ -428,7 +428,7 @@ public class AgentController : MonoBehaviour
         //bool movingTowards = isMovingTowards(_currentCell.centre, transform.position, GetComponent<Rigidbody>().velocity);
 
         //if (!movingTowards)
-        if(distanceToCurrentCellCentre < 0.01f)
+        if(distanceToCurrentCellCentre < 0.05f)
         {
             MovementAction.Movement movement = _inputController.ProccessMovementQueue();
 
