@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class CameraController : MonoBehaviour
 {
+    public bool rotateCamera = false;
     public Transform PlayerTransform;
 
     private Vector3 CameraOffset;
@@ -22,5 +23,18 @@ public class CameraController : MonoBehaviour
         Vector3 newPos = PlayerTransform.position + CameraOffset;
 
         transform.position = Vector3.Slerp(transform.position, newPos, SmoothFactor);
+
+        if (rotateCamera)
+        {
+            Vector3 playerRotation = PlayerTransform.rotation.eulerAngles;
+
+            Quaternion newCameraRotation = Quaternion.Euler(90, 0, 360 - playerRotation.y);
+
+            transform.rotation = Quaternion.Slerp(transform.rotation, newCameraRotation, 7.5f * Time.deltaTime);
+        }
+        else
+        {
+            transform.rotation = Quaternion.Euler(90, 0, 0);
+        }
     }
 }

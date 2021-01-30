@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.PlayerLoop;
 using UnityEngine.UI;
 
@@ -247,7 +248,7 @@ public class AgentController : MonoBehaviour
 
     public void SetNextCell(int x, int y)
     {
-        if (_nextCell.gridPosition.X != x && _nextCell.gridPosition.Y != y || _nextCell == null)
+        if (_nextCell != null && _nextCell.gridPosition.X != x && _nextCell.gridPosition.Y != y || _nextCell == null)
         {
             if(_nextCell != null && _nextCell.IsNextCell())
                 _nextCell.ToggleNextCellIndicator();
@@ -259,7 +260,7 @@ public class AgentController : MonoBehaviour
     
     public void SetNextCell(GridCell nextCell)
     {
-        if (_nextCell != nextCell || _nextCell == null)
+        if (_nextCell != null && _nextCell != nextCell || _nextCell == null)
         {
             if (_nextCell != null && _nextCell.IsNextCell())
                 _nextCell.ToggleNextCellIndicator();
@@ -297,6 +298,11 @@ public class AgentController : MonoBehaviour
         SetMovementDirection(Vector3.forward);
         
         GridController = GameObject.FindObjectOfType<GridController>();
+
+        if (this.gameObject.layer == 9) // AI
+        {
+            gameObject.GetComponent<NavMeshAgent>().SetDestination(new Vector3(0.5f, 0.0f, 0.5f));
+        }
     }
 
     public void AdjustPosition()
@@ -392,82 +398,86 @@ public class AgentController : MonoBehaviour
         }
     }
     
-    private bool isMovingTowards(Vector3 testPoint, Vector3 objectPosition, Vector3 objectVelocty) {
+    private bool isMovingTowards(Vector3 testPoint, Vector3 objectPosition, Vector3 objectVelocty) {    
         Vector3 toPoint = testPoint - objectPosition; //a vector going from your obect to the point
         float result = Vector3.Dot(toPoint, objectVelocty);
         return result >= 0;
     }
     void FixedUpdate ()
     {
-        _inputController.Update();
-
-        GetComponent<Rigidbody>().velocity = MovementDirection * Speed;
-
-        GetComponent<Rigidbody>().position = new Vector3 
-        (
-            Mathf.Clamp (GetComponent<Rigidbody>().position.x, BoxCollider.bounds.min.x, BoxCollider.bounds.max.x), 
-            0.0f, 
-            Mathf.Clamp (GetComponent<Rigidbody>().position.z, BoxCollider.bounds.min.z, BoxCollider.bounds.max.z)
-        );
-
-        //GetComponent<Rigidbody>().rotation = Quaternion.Euler (0.0f, 0.0f, GetComponent<Rigidbody>().velocity.x * -Tilt);
-        
-        if(MovementDirection == Vector3.right)
-            transform.rotation = Quaternion.Euler(0,90,0);
-        if(MovementDirection == Vector3.left)
-            transform.rotation = Quaternion.Euler(0,-90,0);
-        if(MovementDirection == Vector3.forward)
-            transform.rotation = Quaternion.Euler(0,0,0);
-        if(MovementDirection == Vector3.back)
-            transform.rotation = Quaternion.Euler(0,180,0);
-
-        
-        float distanceToCurrentCellCentre = Vector3.Distance(_currentCell.centre, transform.position);
-        float distanceToNextCellCentre = Vector3.Distance(_nextCell.centre, transform.position);
-        
-        //bool movingTowards = isMovingTowards(_currentCell.centre, transform.position, GetComponent<Rigidbody>().velocity);
-
-        //if (!movingTowards)
-        if(distanceToCurrentCellCentre < 0.05f)
+        if (this.tag == "Player" && _currentCell != null)
         {
-            MovementAction.Movement movement = _inputController.ProccessMovementQueue();
+            _inputController.Update();
 
-            if (movement != MovementAction.Movement.Forward)
+            GetComponent<Rigidbody>().velocity = MovementDirection * Speed;
+
+            GetComponent<Rigidbody>().position = new Vector3
+            (
+                Mathf.Clamp(GetComponent<Rigidbody>().position.x, BoxCollider.bounds.min.x, BoxCollider.bounds.max.x),
+                0.075f,
+                Mathf.Clamp(GetComponent<Rigidbody>().position.z, BoxCollider.bounds.min.z, BoxCollider.bounds.max.z)
+            );
+
+            //GetComponent<Rigidbody>().rotation = Quaternion.Euler (0.0f, 0.0f, GetComponent<Rigidbody>().velocity.x * -Tilt);
+
+            if (MovementDirection == Vector3.right)
+                transform.rotation = Quaternion.Euler(0, 90, 0);
+            if (MovementDirection == Vector3.left)
+                transform.rotation = Quaternion.Euler(0, -90, 0);
+            if (MovementDirection == Vector3.forward)
+                transform.rotation = Quaternion.Euler(0, 0, 0);
+            if (MovementDirection == Vector3.back)
+                transform.rotation = Quaternion.Euler(0, 180, 0);
+
+
+            float distanceToCurrentCellCentre = Vector3.Distance(_currentCell.centre, transform.position);
+            float distanceToNextCellCentre = Vector3.Distance(_nextCell.centre, transform.position);
+
+            //bool movingTowards = isMovingTowards(_currentCell.centre, transform.position, GetComponent<Rigidbody>().velocity);
+
+            //if (!movingTowards)
+            if (distanceToCurrentCellCentre < 0.05f)
             {
-                ChangeMovementDirection(movement);
-            }
-        }
-        else
-        {
-            AdjustPosition();
-        }
+                MovementAction.Movement movement = _inputController.ProccessMovementQueue();
 
-        if (distanceToNextCellCentre < distanceToCurrentCellCentre)
-        {
-            // leave previous current and next
-            // this should be shifted into the update where there is a check to see
-            // if the player is more than half way into the cell
-            // and if the player is traveling in it's direction
-            if (_currentCell != null && _currentCell.agentsInCell.Count > 0)
-            {
-                _currentCell.agentsInCell.Remove(this);
-                if (_currentCell.IsSpawn())
+                if (movement != MovementAction.Movement.Forward)
                 {
-                    _currentCell.SetSpawn(false);
+                    ChangeMovementDirection(movement);
                 }
-                SetPreviousCell(_currentCell);
             }
-            
-            SetCurrentCell(_nextCell);
-        }
+            else
+            {
+                AdjustPosition();
+            }
 
-        if (DebugText != null)
-        {
-            // DebugText.text = GetComponent<Rigidbody>().position.ToString();
-            // DebugText.text += "\n " + _currentCell.centre;
-            
-            // DebugText.text = "( " + _currentCell.centre.x + ", " + _currentCell.centre.y + ", " + _currentCell.centre.z + " )";
-            DebugText.text = _currentCell.gridPosition.ToString();
+            if (distanceToNextCellCentre < distanceToCurrentCellCentre)
+            {
+                // leave previous current and next
+                // this should be shifted into the update where there is a check to see
+                // if the player is more than half way into the cell
+                // and if the player is traveling in it's direction
+                if (_currentCell != null && _currentCell.agentsInCell.Count > 0)
+                {
+                    _currentCell.agentsInCell.Remove(this);
+                    if (_currentCell.IsSpawn())
+                    {
+                        _currentCell.SetSpawn(false);
+                    }
+
+                    SetPreviousCell(_currentCell);
+                }
+
+                SetCurrentCell(_nextCell);
+            }
+
+            if (DebugText != null)
+            {
+                // DebugText.text = GetComponent<Rigidbody>().position.ToString();
+                // DebugText.text += "\n " + _currentCell.centre;
+
+                // DebugText.text = "( " + _currentCell.centre.x + ", " + _currentCell.centre.y + ", " + _currentCell.centre.z + " )";
+                DebugText.text = _currentCell.gridPosition.ToString();
+            }
         }
     }
 }

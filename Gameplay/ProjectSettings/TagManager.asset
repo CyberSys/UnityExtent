@@ -6,17 +6,18 @@ TagManager:
   tags:
   - Grid
   - Agent
+  - Bound
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Player
   - Water
   - UI
-  - 
-  - 
-  - 
-  - 
+  - NavMesh
+  - Bound
+  - Cell Marking
+  - AI
   - 
   - 
   - 
