@@ -232,7 +232,7 @@ public class AgentController : MonoBehaviour
             SetNextCell(x, y+1);
         if(MovementDirection == Vector3.right)
             SetNextCell(x+1, y);
-        if(MovementDirection == Vector3.down)
+        if(MovementDirection == Vector3.back)
             SetNextCell(x, y-1);
 
         currentCellChanged = true;
@@ -249,7 +249,7 @@ public class AgentController : MonoBehaviour
             SetNextCell(_currentCell.gridPosition.X, _currentCell.gridPosition.Y+1);
         if(MovementDirection == Vector3.right)
             SetNextCell(_currentCell.gridPosition.X+1, _currentCell.gridPosition.Y);
-        if(MovementDirection == Vector3.down)
+        if(MovementDirection == Vector3.back)
             SetNextCell(_currentCell.gridPosition.X, _currentCell.gridPosition.Y-1);
         
         currentCellChanged = true;
@@ -264,26 +264,22 @@ public class AgentController : MonoBehaviour
 
     public virtual void SetNextCell(int x, int y)
     {
-        if (_nextCell != null && _nextCell.gridPosition.X != x && _nextCell.gridPosition.Y != y || _nextCell == null)
-        {
-            if(_nextCell != null && _nextCell.IsNextCell())
-                _nextCell.ToggleNextCellIndicator();
-            
-            _nextCell = GridController.GetCell(x, y);
-            _nextCell.ToggleNextCellIndicator();
-        }
+        // reset previous next cell
+        if(_nextCell!= null)
+            _nextCell.SetNextCellIndicator(false);
+        
+        _nextCell = GridController.GetCell(x, y);
+        _nextCell.SetNextCellIndicator(true);
     }
     
     public virtual void SetNextCell(Cell nextCell)
     {
-        if (_nextCell != null && _nextCell != nextCell || _nextCell == null)
-        {
-            if (_nextCell != null && _nextCell.IsNextCell())
-                _nextCell.ToggleNextCellIndicator();
-
-            _nextCell = nextCell;
-            _nextCell.ToggleNextCellIndicator();
-        }
+        // reset previous next cell
+        if(_nextCell!= null)
+            _nextCell.SetNextCellIndicator(false);
+        
+        _nextCell = nextCell;
+        _nextCell.SetNextCellIndicator(true);
     }
     
     private Cell _previousCell;
@@ -340,39 +336,68 @@ public class AgentController : MonoBehaviour
     }
     public virtual void ChangeMovementDirection(MovementAction.Movement newMovement)
     {
+        Cell.GridPosition currentGridPosition = GridController.GetCellFromWorldPosition(transform.position).gridPosition;
         if (MovementDirection == Vector3.forward)
         {
-            if(newMovement == MovementAction.Movement.TurnLeft)
+            if (newMovement == MovementAction.Movement.TurnLeft)
+            {
                 SetMovementDirection(Vector3.left);
-            if(newMovement == MovementAction.Movement.TurnRight)
+                SetNextCell(currentGridPosition.X-1, currentGridPosition.Y);
+            }
+
+            if (newMovement == MovementAction.Movement.TurnRight)
+            {
                 SetMovementDirection(Vector3.right);
+                SetNextCell(currentGridPosition.X+1, currentGridPosition.Y);
+            }
             return;
         }
         
         if (MovementDirection == Vector3.back)
         {
-            if(newMovement == MovementAction.Movement.TurnLeft)
+            if (newMovement == MovementAction.Movement.TurnLeft)
+            {
                 SetMovementDirection(Vector3.right);
-            if(newMovement == MovementAction.Movement.TurnRight)
+                SetNextCell(currentGridPosition.X+1, currentGridPosition.Y);
+            }
+
+            if (newMovement == MovementAction.Movement.TurnRight)
+            {
                 SetMovementDirection(Vector3.left);
+                SetNextCell(currentGridPosition.X-1, currentGridPosition.Y);
+            }
             return;
         }
         
         if (MovementDirection == Vector3.left)
         {
-            if(newMovement == MovementAction.Movement.TurnLeft)
+            if (newMovement == MovementAction.Movement.TurnLeft)
+            {
                 SetMovementDirection(Vector3.back);
-            if(newMovement == MovementAction.Movement.TurnRight)
+                SetNextCell(currentGridPosition.X, currentGridPosition.Y-1);
+            }
+
+            if (newMovement == MovementAction.Movement.TurnRight)
+            {
                 SetMovementDirection(Vector3.forward);
+                SetNextCell(currentGridPosition.X, currentGridPosition.Y+1);
+            }
             return;
         }
         
         if (MovementDirection == Vector3.right)
         {
-            if(newMovement == MovementAction.Movement.TurnLeft)
+            if (newMovement == MovementAction.Movement.TurnLeft)
+            {
                 SetMovementDirection(Vector3.forward);
-            if(newMovement == MovementAction.Movement.TurnRight)
+                SetNextCell(currentGridPosition.X, currentGridPosition.Y+1);
+            }
+
+            if (newMovement == MovementAction.Movement.TurnRight)
+            {
                 SetMovementDirection(Vector3.back);
+                SetNextCell(currentGridPosition.X, currentGridPosition.Y-1);
+            }
             return;
         }
     }
@@ -398,13 +423,13 @@ public class AgentController : MonoBehaviour
         // should also check based on direction travelling
         // at the moment turning close to the corner of a cell
         // could mean entering 3 cells and this would be wrong
-        if (_nextCell != null && _nextCell.IsNextCell())
-        {
-            _nextCell.ToggleNextCellIndicator();
-            _nextCell.agentsInCell.Remove(this);
-        }
-
-        SetNextCell(other.gameObject.GetComponent<Cell>());
+        // if (_nextCell != null && _nextCell.IsNextCell())
+        // {
+        //     _nextCell.SetNextCellIndicator();
+        //     _nextCell.agentsInCell.Remove(this);
+        // }
+        //
+        // SetNextCell(other.gameObject.GetComponent<Cell>());
         
         // bool movingTowards = isMovingTowards(_currentCell.centre, transform.position, GetComponent<Rigidbody>().velocity);
         // enter new cells
@@ -466,9 +491,8 @@ public class AgentController : MonoBehaviour
             // this should be shifted into the update where there is a check to see
             // if the player is more than half way into the cell
             // and if the player is traveling in it's direction
-            if (_currentCell != null && _currentCell.agentsInCell.Count > 0)
+            if (_currentCell != null)
             {
-                _currentCell.agentsInCell.Remove(this);
                 if (_currentCell.IsSpawn())
                 {
                     _currentCell.SetSpawn(false);

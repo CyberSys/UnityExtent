@@ -81,14 +81,14 @@ public class GridController : MonoBehaviour
 
     public void SetPath(List<Cell> newPath)
     {
-        ResetPath();
+        ResetPath(false);
         
         _path = newPath;
 
-        ResetPath();
+        ResetPath(true);
     }
 
-    void ResetPath()
+    void ResetPath(bool showPath)
     {
         if (_path == null)
             return;
@@ -96,7 +96,7 @@ public class GridController : MonoBehaviour
         foreach (var cell in _path)
         {
             // if(cell.IsNextCell())
-            cell.ToggleNextCellIndicator();
+            cell.TogglePathCellIndicator(showPath);
         }
     }
 
@@ -192,9 +192,9 @@ public class GridController : MonoBehaviour
     {
         //Instantiate(aiPrefab, new Vector3(1.5f, 0.0f, 0.5f), Quaternion.identity);
 
-        AgentController playerAgent = player.GetComponent<AgentController>();
-        playerAgent.SetMovementDirection(Vector3.forward);
-        playerAgent.SetStartingCell(0,0);
+        // AgentController playerAgent = player.GetComponent<AgentController>();
+        // playerAgent.SetMovementDirection(Vector3.forward);
+        // playerAgent.SetStartingCell(0,0);
         
         
         

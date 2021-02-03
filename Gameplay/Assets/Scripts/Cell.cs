@@ -101,10 +101,15 @@ public class Cell : MonoBehaviour, IHeapItem<Cell>
     {
         return nextCell;
     }
-    public void ToggleNextCellIndicator()
+    public void SetNextCellIndicator(bool isNextCell)
     {
-        nextCell = !nextCell;
+        nextCell = isNextCell;
         GETChildGameObjectWithName(gameObject, "Next").GetComponent<MeshRenderer>().enabled = nextCell;
+    }
+    
+    public void TogglePathCellIndicator(bool inPath)
+    {
+        GETChildGameObjectWithName(gameObject, "Path").GetComponent<MeshRenderer>().enabled = inPath;
     }
 
     private void ToggleBlocker(bool isWalkable)
