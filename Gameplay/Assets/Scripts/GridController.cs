@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Serialization;
@@ -9,30 +10,94 @@ using UnityEngine.Serialization;
 public class GridController : MonoBehaviour
 {
     public GameObject player;
+    public GameObject aiPrefab;
 
     public GameObject cellPrefab;
-    public GameObject aiPrefab;
+    public GameObject aiNavAgentPrefab;
 
     public int rowNumber = 10;
     public int columnNumber = 10;
+    private float cellWidth = 1.0f;
 
-    private List<List<GridCell>> _grid = new List<List<GridCell>>();
+    private List<List<Cell>> _grid = new List<List<Cell>>();
 
-    private bool AgentsInitialised = false;
-
-    public GridCell GetCell(int x, int y)
+    public int MaxSize
     {
-        if (x >= _grid.Count)
+        get
         {
-            throw new InvalidOperationException("X index out of bounds.");
+            return rowNumber * columnNumber;
         }
+    }
 
-        if (y >= _grid[x].Count)
-        {   
-            throw new InvalidOperationException("X index out of bounds.");
-        }
+    public Cell GetCellFromWorldPosition(Vector3 worldPosition)
+    {
+        float gridWidth = rowNumber * cellWidth;
+        float gridHeight = columnNumber  * cellWidth;
+        
+        //float percentX = (worldPosition.x + (gridWidth / 2.0f)) / gridWidth; // centred at origin, mine isn't
+        float percentX = worldPosition.x / gridWidth;
+        percentX = Mathf.Clamp01(percentX);
+        //float percentY = (worldPosition.z + (gridHeight / 2.0f)) / gridHeight; // centred at origin, mine isn't
+        float percentY = worldPosition.z / gridHeight; // using z because grid is on it's side
+        percentY = Mathf.Clamp01(percentY);
+
+        int x = Mathf.FloorToInt(rowNumber * percentX);
+        int y = Mathf.FloorToInt(columnNumber * percentY);
 
         return _grid[x][y];
+    }
+    public Cell GetCell(int x, int y)
+    {
+        return _grid[Mathf.Clamp(x, 0, rowNumber)][Mathf.Clamp(y, 0, columnNumber)];
+    }
+
+    public List<Cell> GetNeighbours(Cell cell)
+    {
+        List<Cell> neighbours = new List<Cell>();
+
+        for (int x = -1; x <= 1; x++)
+        {
+            for (int y = -1; y <= 1; y++)
+            {
+                if(x==0 && y == 0
+                   || x==-1 && y==1 || x==1 && y==1 // top diagonals ignored
+                   || x==-1 && y==-1 || x==1 && y==-1) // bottom diagonals ignored
+                    continue;
+
+                int checkX = cell.gridPosition.X + x;
+                int checkY = cell.gridPosition.Y + y;
+
+                if (checkX >= 0 && checkX < rowNumber && checkY >= 0 && checkY < columnNumber)
+                {
+                    neighbours.Add(GetCell(checkX,checkY));
+                }
+            }
+        }
+
+        return neighbours;
+    }
+
+    private List<Cell> _path;
+
+    public void SetPath(List<Cell> newPath)
+    {
+        ResetPath();
+        
+        _path = newPath;
+
+        ResetPath();
+    }
+
+    void ResetPath()
+    {
+        if (_path == null)
+            return;
+        
+        foreach (var cell in _path)
+        {
+            // if(cell.IsNextCell())
+            cell.ToggleNextCellIndicator();
+        }
     }
 
     private static GameObject GETChildGameObjectWithName(GameObject parent, string withName) {
@@ -60,19 +125,26 @@ public class GridController : MonoBehaviour
 
             rowObject.name = "" + i;
 
-            List<GridCell> row = new List<GridCell>();
+            List<Cell> row = new List<Cell>();
             for (int j = 0; j < columnNumber; j++)
             {
                 GameObject cellPrefab = Instantiate(this.cellPrefab, new Vector3(i + 0.5f, 0.0f, j + 0.5f),
                     Quaternion.identity);
 
-                GridCell prefabGridCell = cellPrefab.GetComponent<GridCell>();
+                Cell prefabCell = cellPrefab.GetComponent<Cell>();
 
-                prefabGridCell.centre = new Vector3(i + 0.5f, 0.075f, j + 0.5f);
+                prefabCell.centre = new Vector3(i + 0.5f, 0.075f, j + 0.5f);
 
-                prefabGridCell.gridPosition = new GridCell.GridPosition(i, j);
+                prefabCell.gridPosition = new Cell.GridPosition(i, j);
 
-                row.Add(prefabGridCell);
+                if(i == 2 && j < 5 || i == 4 && j > 2 || i == 6 && j < 8)
+                    prefabCell.SetWalkable(false);
+                else
+                {
+                    prefabCell.SetWalkable(true);
+                }
+
+                row.Add(prefabCell);
 
                 cellPrefab.transform.parent = rowObject.transform;
 
@@ -108,7 +180,7 @@ public class GridController : MonoBehaviour
             _grid.Add(row);
         }
         
-        gameObject.GetComponent<NavMeshSurface>().BuildNavMesh ();
+        InitiliaseAgents();
     }
 
     static IEnumerator Wait(float time)
@@ -118,21 +190,29 @@ public class GridController : MonoBehaviour
 
     void InitiliaseAgents()
     {
-        Instantiate(aiPrefab, new Vector3(0.5f, 0.0f, 1.5f), Quaternion.identity);
+        //Instantiate(aiPrefab, new Vector3(1.5f, 0.0f, 0.5f), Quaternion.identity);
 
         AgentController playerAgent = player.GetComponent<AgentController>();
         playerAgent.SetMovementDirection(Vector3.forward);
         playerAgent.SetStartingCell(0,0);
+        
+        
+        
+        AgentController aiAgent = Instantiate(aiPrefab, new Vector3(1.5f, 0.0f, 0.5f), Quaternion.identity).GetComponent<AgentController>();
+        aiAgent.SetMovementDirection(Vector3.forward);
+        aiAgent.SetStartingCell(0,1);
 
-        AgentsInitialised = true;
+        AIAgentController aiAgentController = (AIAgentController)aiAgent;
+        if (aiAgentController)
+            aiAgentController.target = GameObject.Find("/Target").transform;
     }
 
     // Update is called once per frame
     void FixedUpdate()
     {
-        if (gameObject.GetComponent<NavMeshSurface>().navMeshData != null && !AgentsInitialised)
-        {
-            InitiliaseAgents();
-        }
+        // if (gameObject.GetComponent<NavMeshSurface>() && gameObject.GetComponent<NavMeshSurface>().navMeshData != null && !AgentsInitialised)
+        // {
+        //     InitiliaseAgents();
+        // }
     }
 }
