@@ -107,12 +107,12 @@ public class Cell : MonoBehaviour, IHeapItem<Cell>
         GETChildGameObjectWithName(gameObject, "Next").GetComponent<MeshRenderer>().enabled = nextCell;
     }
     
-    public void TogglePathCellIndicator(bool inPath)
+    public void SetPathCellIndicator(bool inPath)
     {
         GETChildGameObjectWithName(gameObject, "Path").GetComponent<MeshRenderer>().enabled = inPath;
     }
 
-    private void ToggleBlocker(bool isWalkable)
+    private void SetBlocker(bool isWalkable)
     {
         GETChildGameObjectWithName(gameObject, "Left Blocker").GetComponent<MeshRenderer>().enabled = !isWalkable;
         GETChildGameObjectWithName(gameObject, "Right Blocker").GetComponent<MeshRenderer>().enabled = !isWalkable;
@@ -123,7 +123,7 @@ public class Cell : MonoBehaviour, IHeapItem<Cell>
     public void SetWalkable(bool isWalkable)
     {
         walkable = isWalkable;
-        ToggleBlocker(walkable);
+        SetBlocker(walkable);
     }
 
     public bool IsWalkable()

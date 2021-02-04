@@ -223,36 +223,54 @@ public class AgentController : MonoBehaviour
 
     public virtual void SetCurrentCell(int x, int y)
     {
-        _currentCell = GridController.GetCell(x, y);
-        _currentCell.agentsInCell.Add(this);
-        
-        if(MovementDirection == Vector3.left)
-            SetNextCell(x-1, y);
-        if(MovementDirection == Vector3.forward)
-            SetNextCell(x, y+1);
-        if(MovementDirection == Vector3.right)
-            SetNextCell(x+1, y);
-        if(MovementDirection == Vector3.back)
-            SetNextCell(x, y-1);
+        if (_currentCell == null || _currentCell.gridPosition.X != x && _currentCell.gridPosition.Y != y)
+        {
+            _currentCell = GridController.GetCell(x, y);
+            _currentCell.agentsInCell.Add(this);
 
-        currentCellChanged = true;
+            if (MovementDirection == Vector3.left)
+                SetNextCell(x - 1, y);
+            if (MovementDirection == Vector3.forward)
+                SetNextCell(x, y + 1);
+            if (MovementDirection == Vector3.right)
+                SetNextCell(x + 1, y);
+            if (MovementDirection == Vector3.back)
+                SetNextCell(x, y - 1);
+
+            currentCellChanged = true;
+        }
     }
     
     public virtual void SetCurrentCell(Cell currentCell)
     {
-        _currentCell = currentCell;
-        _currentCell.agentsInCell.Add(this);
-        
-        if(MovementDirection == Vector3.left)
-            SetNextCell(_currentCell.gridPosition.X-1, _currentCell.gridPosition.Y);
-        if(MovementDirection == Vector3.forward)
-            SetNextCell(_currentCell.gridPosition.X, _currentCell.gridPosition.Y+1);
-        if(MovementDirection == Vector3.right)
-            SetNextCell(_currentCell.gridPosition.X+1, _currentCell.gridPosition.Y);
-        if(MovementDirection == Vector3.back)
-            SetNextCell(_currentCell.gridPosition.X, _currentCell.gridPosition.Y-1);
-        
-        currentCellChanged = true;
+        if (_currentCell == null 
+            || _currentCell.gridPosition.X != currentCell.gridPosition.X
+            || _currentCell.gridPosition.Y != currentCell.gridPosition.Y)
+        {
+            if (_currentCell != null)
+            {
+                if (_currentCell.IsSpawn())
+                {
+                    _currentCell.SetSpawn(false);
+                }
+
+                SetPreviousCell(_currentCell);
+            }
+            
+            _currentCell = currentCell;
+            _currentCell.agentsInCell.Add(this);
+
+            if (MovementDirection == Vector3.left)
+                SetNextCell(_currentCell.gridPosition.X - 1, _currentCell.gridPosition.Y);
+            if (MovementDirection == Vector3.forward)
+                SetNextCell(_currentCell.gridPosition.X, _currentCell.gridPosition.Y + 1);
+            if (MovementDirection == Vector3.right)
+                SetNextCell(_currentCell.gridPosition.X + 1, _currentCell.gridPosition.Y);
+            if (MovementDirection == Vector3.back)
+                SetNextCell(_currentCell.gridPosition.X, _currentCell.gridPosition.Y - 1);
+
+            currentCellChanged = true;
+        }
     }
     
     private Cell _nextCell;
@@ -439,12 +457,12 @@ public class AgentController : MonoBehaviour
     {
         // Debug.Log("Player left: " + other.gameObject.name);
 
-        Cell triggerCell = other.gameObject.GetComponent<Cell>();
-
-        if (triggerCell == _currentCell && !triggerCell.IsSpawn())
-        {
-            throw new InvalidOperationException("Player leaving grid.");
-        }
+        // Cell triggerCell = other.gameObject.GetComponent<Cell>();
+        //
+        // if (triggerCell == _currentCell && !triggerCell.IsSpawn())
+        // {
+        //     throw new InvalidOperationException("Player leaving grid.");
+        // }
     }
     
     private bool isMovingTowards(Vector3 testPoint, Vector3 objectPosition, Vector3 objectVelocty)
@@ -485,7 +503,9 @@ public class AgentController : MonoBehaviour
         
         AdjustPosition();
 
-        if (distanceToNextCellCentre < distanceToCurrentCellCentre)
+        SetCurrentCell(GridController.GetCellFromWorldPosition(transform.position));
+
+        /*if (distanceToNextCellCentre < distanceToCurrentCellCentre)
         {
             // leave previous current and next
             // this should be shifted into the update where there is a check to see
@@ -502,7 +522,7 @@ public class AgentController : MonoBehaviour
             }
 
             SetCurrentCell(_nextCell);
-        }
+        }*/
 
         if (DebugText != null)
         {

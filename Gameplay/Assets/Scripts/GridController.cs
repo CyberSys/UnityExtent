@@ -96,7 +96,7 @@ public class GridController : MonoBehaviour
         foreach (var cell in _path)
         {
             // if(cell.IsNextCell())
-            cell.TogglePathCellIndicator(showPath);
+            cell.SetPathCellIndicator(showPath);
         }
     }
 

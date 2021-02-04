@@ -56,6 +56,16 @@ public class Pathfinding : MonoBehaviour
                     {
                         continue;
                     }
+                    
+                    // check that you can actually get to the neighbours (can't instantly turn 180)
+                    if (currentCell == startCell)
+                    {
+                        if(request.currentMovementDirection == Vector3.forward && neighbour.gridPosition.Y < currentCell.gridPosition.Y
+                           || request.currentMovementDirection == Vector3.back && neighbour.gridPosition.Y > currentCell.gridPosition.Y
+                           || request.currentMovementDirection == Vector3.left && neighbour.gridPosition.X > currentCell.gridPosition.X
+                           || request.currentMovementDirection == Vector3.right && neighbour.gridPosition.X < currentCell.gridPosition.X)
+                            continue;
+                    }
 
                     int newMovementCostToNeighbour = currentCell.gCost + GetDistance(currentCell, neighbour) + neighbour.movementPenalty;
 
