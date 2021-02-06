@@ -150,30 +150,26 @@ public class GridController : MonoBehaviour
 
                 cellPrefab.name = "" + j;
 
+                Cell newCell = cellPrefab.GetComponent<Cell>();
+
                 if (j == 0)
                 {
-                    GETChildGameObjectWithName(cellPrefab, "Back Bound").GetComponent<MeshRenderer>().enabled = true;
-                    GETChildGameObjectWithName(cellPrefab, "Back Bound").GetComponent<BoxCollider>().enabled = true;
+                    newCell.SetBackBound(true);
                 }
 
                 if (j == rowNumber - 1)
                 {
-                    GETChildGameObjectWithName(cellPrefab, "Forward").GetComponent<MeshRenderer>().enabled = true;
-                    GETChildGameObjectWithName(cellPrefab, "Forward Bound").GetComponent<MeshRenderer>().enabled = true;
-                    GETChildGameObjectWithName(cellPrefab, "Forward Bound").GetComponent<BoxCollider>().enabled = true;
+                    newCell.SetForwardBound(true);
                 }
 
                 if (i == 0)
                 {
-                    GETChildGameObjectWithName(cellPrefab, "Left Bound").GetComponent<MeshRenderer>().enabled = true;
-                    GETChildGameObjectWithName(cellPrefab, "Left Bound").GetComponent<BoxCollider>().enabled = true;
+                    newCell.SetLeftBound(true);
                 }
 
                 if (i == columnNumber - 1)
                 {
-                    GETChildGameObjectWithName(cellPrefab, "Right").GetComponent<MeshRenderer>().enabled = true;
-                    GETChildGameObjectWithName(cellPrefab, "Right Bound").GetComponent<MeshRenderer>().enabled = true;
-                    GETChildGameObjectWithName(cellPrefab, "Right Bound").GetComponent<BoxCollider>().enabled = true;
+                    newCell.SetRightBound(true);
                 }
             }
 

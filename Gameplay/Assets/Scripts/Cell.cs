@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Cell : MonoBehaviour, IHeapItem<Cell>
+public class Cell : PersistableObject, IHeapItem<Cell>
 {
     public int HeapIndex
     {
@@ -58,11 +58,13 @@ public class Cell : MonoBehaviour, IHeapItem<Cell>
     public List<AgentController> agentsInCell;
 
     private bool nextCell = false;
-
     private bool spawn = false;
-    
-    
     private bool walkable = true;
+    private bool backBoundEnabled = false;
+    private bool forwardBoundEnabled = false;
+    private bool leftBoundEnabled = false;
+    private bool rightBoundEnabled = false;
+    
     public int movementPenalty;
 
     public int gCost;
@@ -119,6 +121,36 @@ public class Cell : MonoBehaviour, IHeapItem<Cell>
         GETChildGameObjectWithName(gameObject, "Forward Blocker").GetComponent<MeshRenderer>().enabled = !isWalkable;
         GETChildGameObjectWithName(gameObject, "Back Blocker").GetComponent<MeshRenderer>().enabled = !isWalkable;
     }
+    
+    public void SetBackBound(bool enableBackBound)
+    {
+        backBoundEnabled = enableBackBound;
+        GETChildGameObjectWithName(gameObject, "Back Bound").GetComponent<MeshRenderer>().enabled = backBoundEnabled;
+        GETChildGameObjectWithName(gameObject, "Back Bound").GetComponent<BoxCollider>().enabled = backBoundEnabled;
+    }
+    
+    public void SetForwardBound(bool enableForwardBound)
+    {
+        forwardBoundEnabled = enableForwardBound;
+        GETChildGameObjectWithName(gameObject, "Forward").GetComponent<MeshRenderer>().enabled = forwardBoundEnabled;
+        GETChildGameObjectWithName(gameObject, "Forward Bound").GetComponent<MeshRenderer>().enabled = forwardBoundEnabled;
+        GETChildGameObjectWithName(gameObject, "Forward Bound").GetComponent<BoxCollider>().enabled = forwardBoundEnabled;
+    }
+
+    public void SetLeftBound(bool enableLeftBound)
+    {
+        leftBoundEnabled = enableLeftBound;
+        GETChildGameObjectWithName(gameObject, "Left Bound").GetComponent<MeshRenderer>().enabled = leftBoundEnabled;
+        GETChildGameObjectWithName(gameObject, "Left Bound").GetComponent<BoxCollider>().enabled = leftBoundEnabled;
+    }
+
+    public void SetRightBound(bool enableRightBound)
+    {
+        rightBoundEnabled = enableRightBound;
+        GETChildGameObjectWithName(gameObject, "Right").GetComponent<MeshRenderer>().enabled = rightBoundEnabled;
+        GETChildGameObjectWithName(gameObject, "Right Bound").GetComponent<MeshRenderer>().enabled = rightBoundEnabled;
+        GETChildGameObjectWithName(gameObject, "Right Bound").GetComponent<BoxCollider>().enabled = rightBoundEnabled;
+    }
 
     public void SetWalkable(bool isWalkable)
     {
@@ -129,5 +161,40 @@ public class Cell : MonoBehaviour, IHeapItem<Cell>
     public bool IsWalkable()
     {
         return walkable;
+    }
+    
+    /////////////////////// persistable
+    ///
+    
+    public virtual void Save (GameDataWriter writer) {
+        base.Save(writer);
+        
+        writer.Write(centre);
+        writer.Write(gridPosition.X);
+        writer.Write(gridPosition.Y);
+        writer.Write(nextCell);
+        writer.Write(spawn);
+        writer.Write(walkable);
+        
+        writer.Write(backBoundEnabled);
+        writer.Write(forwardBoundEnabled);
+        writer.Write(leftBoundEnabled);
+        writer.Write(rightBoundEnabled);
+    }
+    
+    public virtual void Load (GameDataReader reader)
+    {
+        base.Load(reader);
+
+        centre = reader.ReadVector3();
+        gridPosition = new GridPosition(reader.ReadInt(),reader.ReadInt());
+        SetNextCellIndicator(reader.ReadBool());
+        spawn = reader.ReadBool();
+        SetWalkable(reader.ReadBool());
+        
+        SetBackBound(reader.ReadBool());
+        SetForwardBound(reader.ReadBool());
+        SetLeftBound(reader.ReadBool());
+        SetRightBound(reader.ReadBool());
     }
 }
