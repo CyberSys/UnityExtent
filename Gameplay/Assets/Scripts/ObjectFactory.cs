@@ -7,7 +7,7 @@ public class ObjectFactory : ScriptableObject
 
     public PersistableObject Get(int objectId)
     {
-        return Instantiate(prefabs[objectId]);
+        return prefabs[objectId];
     }
     
     public PersistableObject GetRandom () {

@@ -16,7 +16,7 @@ public class Path {
 
 		Vector2 previousPoint = V3ToV2 (startPos);
 		for (int i = 0; i < lookPoints.Count; i++) {
-			Vector2 currentPoint = V3ToV2 (lookPoints [i].centre);
+			Vector2 currentPoint = V3ToV2 (lookPoints [i].GetCentre());
 			Vector2 dirToCurrentPoint = (currentPoint - previousPoint).normalized;
 			Vector2 turnBoundaryPoint = (i == finishLineIndex)?currentPoint : currentPoint - dirToCurrentPoint * turnDst;
 			turnBoundaries [i] = new Line (turnBoundaryPoint, previousPoint - dirToCurrentPoint * turnDst);
@@ -25,7 +25,7 @@ public class Path {
 
 		float dstFromEndPoint = 0;
 		for (int i = lookPoints.Count - 1; i > 0; i--) {
-			dstFromEndPoint += Vector3.Distance (lookPoints [i].centre, lookPoints [i - 1].centre);
+			dstFromEndPoint += Vector3.Distance (lookPoints [i].GetCentre(), lookPoints [i - 1].GetCentre());
 			if (dstFromEndPoint > stoppingDst) {
 				slowDownIndex = i;
 				break;
@@ -41,7 +41,7 @@ public class Path {
 
 		Gizmos.color = Color.black;
 		foreach (Cell cell in lookPoints) {
-			Gizmos.DrawCube (cell.centre + Vector3.up, Vector3.one);
+			Gizmos.DrawCube (cell.GetCentre() + Vector3.up, Vector3.one);
 		}
 
 		Gizmos.color = Color.white;

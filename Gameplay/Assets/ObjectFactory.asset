@@ -13,4 +13,7 @@ MonoBehaviour:
   m_Name: ObjectFactory
   m_EditorClassIdentifier: 
   prefabs:
+  - {fileID: 7123805824999832742, guid: 88068f0e27115e84e96fdbba541fabff, type: 3}
   - {fileID: 5633215174205990100, guid: 4f17707bd26049e43bf8b725726b5c24, type: 3}
+  - {fileID: 2907792506484325603, guid: 3565d4d8232377e4bbdc64f6382dbf46, type: 3}
+  - {fileID: 4887509985198478375, guid: 824daf579eb7eca42a0816ab9fa7739f, type: 3}

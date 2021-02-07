@@ -166,7 +166,7 @@ public class InputController
     }
 }
 
-public class AgentController : MonoBehaviour
+public class AgentController : PersistableObject
 {
     private Rigidbody Rigidbody;
     private BoxCollider BoxCollider;
@@ -197,7 +197,7 @@ public class AgentController : MonoBehaviour
         {
             GridController = GameObject.FindObjectOfType<GridController>();
         }
-        transform.position = GridController.GetCell(x,y).centre;
+        transform.position = GridController.GetCell(x,y).GetCentre();
 
         SetCurrentCell(x, y);
         _currentCell.SetSpawn(true);
@@ -344,13 +344,13 @@ public class AgentController : MonoBehaviour
     public virtual void AdjustPosition()
     {
         if (MovementDirection == Vector3.right)
-            GetComponent<Rigidbody>().position = new Vector3(GetComponent<Rigidbody>().position.x, GetComponent<Rigidbody>().position.y, _currentCell.centre.z);
+            GetComponent<Rigidbody>().position = new Vector3(GetComponent<Rigidbody>().position.x, GetComponent<Rigidbody>().position.y, _currentCell.GetCentre().z);
         if(MovementDirection == Vector3.left)
-            GetComponent<Rigidbody>().position = new Vector3(GetComponent<Rigidbody>().position.x, GetComponent<Rigidbody>().position.y, _currentCell.centre.z);
+            GetComponent<Rigidbody>().position = new Vector3(GetComponent<Rigidbody>().position.x, GetComponent<Rigidbody>().position.y, _currentCell.GetCentre().z);
         if(MovementDirection == Vector3.forward)
-            GetComponent<Rigidbody>().position = new Vector3(_currentCell.centre.x, GetComponent<Rigidbody>().position.y, GetComponent<Rigidbody>().position.z);
+            GetComponent<Rigidbody>().position = new Vector3(_currentCell.GetCentre().x, GetComponent<Rigidbody>().position.y, GetComponent<Rigidbody>().position.z);
         if(MovementDirection == Vector3.back)
-            GetComponent<Rigidbody>().position = new Vector3(_currentCell.centre.x, GetComponent<Rigidbody>().position.y, GetComponent<Rigidbody>().position.z);
+            GetComponent<Rigidbody>().position = new Vector3(_currentCell.GetCentre().x, GetComponent<Rigidbody>().position.y, GetComponent<Rigidbody>().position.z);
     }
     public virtual void ChangeMovementDirection(MovementAction.Movement newMovement)
     {
@@ -449,7 +449,7 @@ public class AgentController : MonoBehaviour
         //
         // SetNextCell(other.gameObject.GetComponent<Cell>());
         
-        // bool movingTowards = isMovingTowards(_currentCell.centre, transform.position, GetComponent<Rigidbody>().velocity);
+        // bool movingTowards = isMovingTowards(_currentCell.GetCentre(), transform.position, GetComponent<Rigidbody>().velocity);
         // enter new cells
     }
 
@@ -473,6 +473,7 @@ public class AgentController : MonoBehaviour
     }
     public virtual void FixedUpdate ()
     {
+        SetCurrentCell(GridController.GetCellFromWorldPosition(transform.position));
         // if (this.tag == "Player" && _currentCell != null)
         // {
         //     _inputController.Update();
@@ -498,12 +499,10 @@ public class AgentController : MonoBehaviour
         if (MovementDirection == Vector3.back)
             transform.rotation = Quaternion.Euler(0, 180, 0);
 
-        float distanceToCurrentCellCentre = Vector3.Distance(_currentCell.centre, transform.position);
-        float distanceToNextCellCentre = Vector3.Distance(_nextCell.centre, transform.position);
+        float distanceToCurrentCellCentre = Vector3.Distance(_currentCell.GetCentre(), transform.position);
+        float distanceToNextCellCentre = Vector3.Distance(_nextCell.GetCentre(), transform.position);
         
         AdjustPosition();
-
-        SetCurrentCell(GridController.GetCellFromWorldPosition(transform.position));
 
         /*if (distanceToNextCellCentre < distanceToCurrentCellCentre)
         {
@@ -527,9 +526,9 @@ public class AgentController : MonoBehaviour
         if (DebugText != null)
         {
             // DebugText.text = GetComponent<Rigidbody>().position.ToString();
-            // DebugText.text += "\n " + _currentCell.centre;
+            // DebugText.text += "\n " + _currentCell.GetCentre();
 
-            // DebugText.text = "( " + _currentCell.centre.x + ", " + _currentCell.centre.y + ", " + _currentCell.centre.z + " )";
+            // DebugText.text = "( " + _currentCell.GetCentre().x + ", " + _currentCell.GetCentre().y + ", " + _currentCell.GetCentre().z + " )";
             DebugText.text = _currentCell.gridPosition.ToString();
         }
     }

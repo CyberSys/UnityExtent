@@ -14,12 +14,16 @@ public class CameraController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        CameraOffset = transform.position - PlayerTransform.position;
+        if(PlayerTransform)
+            CameraOffset = transform.position - PlayerTransform.position;
     }
 
     // Late Update is called after Update methods
     void LateUpdate()
     {
+        if (PlayerTransform == null)
+            return;
+        
         Vector3 newPos = PlayerTransform.position + CameraOffset;
 
         transform.position = Vector3.Slerp(transform.position, newPos, SmoothFactor);

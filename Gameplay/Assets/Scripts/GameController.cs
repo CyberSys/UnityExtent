@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
+using System.Security.Cryptography;
 using UnityEditor;
 
 public class GameController : PersistableObject
@@ -11,22 +12,22 @@ public class GameController : PersistableObject
     public KeyCode loadKey = KeyCode.L;
     public KeyCode clearKey = KeyCode.Escape;
     
-    public ObjectFactory objectFactory;
-    private List<PersistableObject> objects;
+    
+    private List<GridController> grids;
 
     public PersistentStorage storage;
 
     private string savePath;
     void Awake()
     {
-        objects = new List<PersistableObject>();
+        grids = new List<GridController>();
     }
 
     // Update is called once per frame
     void Update()
     {
         if (Input.GetKeyDown(createKey)) {
-            CreateObject();
+            CreateGrid();
         }
         else if (Input.GetKeyDown(saveKey)) {
             storage.Save(this);
@@ -42,43 +43,29 @@ public class GameController : PersistableObject
     }
     
     void BeginNewGame () {
-        for (int i = 0; i < objects.Count; i++) {
-            Destroy(objects[i].gameObject);
+        for (int i = 0; i < grids.Count; i++) {
+            Destroy(grids[i].gameObject);
         }
-        objects.Clear();
+        grids.Clear();
     }
     
-    void CreateObject ()
+    void CreateGrid ()
     {
-        PersistableObject o = objectFactory.GetRandom();
-        Transform t = o.transform;
-        t.localPosition = Random.insideUnitSphere * 5f;
-        t.localRotation = Random.rotation;
+        GridController newGrid = Instantiate(storage.objectFactory.Get(0) as GridController);
+        Transform t = newGrid.transform;
+        t.localPosition = Random.insideUnitSphere * 100f;
 
-        Cell newCell = (Cell) o;
-
-        if (newCell)
-        {
-            newCell.SetBackBound(true);
-            newCell.SetRightBound(true);
-        }
+        Cell cellPrefab = storage.objectFactory.Get(1) as Cell;
+        newGrid.SetObjectFactory(storage.objectFactory);
+        newGrid.GenerateGrid(cellPrefab);
         
-        objects.Add(o);
+        grids.Add(newGrid);
     }
     
     public override void Save (GameDataWriter writer) {
-        writer.Write(objects.Count);
-        for (int i = 0; i < objects.Count; i++) {
-            Cell cellObject = objects[i] as Cell;
-
-            if (cellObject != null)
-            {
-                cellObject.Save(writer);
-            }
-            else
-            {
-                objects[i].Save(writer);
-            }
+        writer.Write(grids.Count);
+        for (int i = 0; i < grids.Count; i++) {
+            grids[i].Save(writer);
         }
     }
     
@@ -86,22 +73,10 @@ public class GameController : PersistableObject
         int count = reader.ReadInt();
         for (int i = 0; i < count; i++)
         {
-            int objectId = reader.ReadInt();
-            PersistableObject o = objectFactory.Get(objectId);
-            
-            Cell cellObject = o as Cell;
-
-            if (cellObject != null)
-            {
-                cellObject.Load(reader);
-                objects.Add(cellObject);
-            }
-            else
-            {
-                objects[i].Load(reader);
-                objects.Add(o);
-            }
-            
+            GridController newGrid = Instantiate(storage.objectFactory.Get(0) as GridController);
+            newGrid.SetObjectFactory(storage.objectFactory);
+            grids.Add(newGrid);
+            grids[i].Load(reader);
         }
     }
 }

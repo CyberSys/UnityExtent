@@ -53,7 +53,7 @@ public class Cell : PersistableObject, IHeapItem<Cell>
 
     public GridPosition gridPosition;
     
-    public Vector3 centre;
+    private Vector3 centre;
 
     public List<AgentController> agentsInCell;
 
@@ -82,12 +82,22 @@ public class Cell : PersistableObject, IHeapItem<Cell>
 
     public Cell(Vector3 centrePosition, bool _walkable = true)
     {
-        centre = centrePosition;
-        int x = (int) Math.Floor(centrePosition.x);
-        int y = (int) Math.Floor(centrePosition.y);
-        gridPosition = new GridPosition(x,y);
+        SetCentre(centrePosition);
  
         walkable = _walkable;
+    }
+
+    public void SetCentre(Vector3 centrePosition)
+    {
+        centre = centrePosition;
+        int x = (int) Math.Floor(centrePosition.x);
+        int y = (int) Math.Floor(centrePosition.z);
+        gridPosition = new GridPosition(x,y);
+    }
+
+    public Vector3 GetCentre()
+    {
+        return centre;
     }
 
     public void SetSpawn(bool isSpawn)
@@ -125,6 +135,7 @@ public class Cell : PersistableObject, IHeapItem<Cell>
     public void SetBackBound(bool enableBackBound)
     {
         backBoundEnabled = enableBackBound;
+        GETChildGameObjectWithName(gameObject, "Back").GetComponent<MeshRenderer>().enabled = !backBoundEnabled;
         GETChildGameObjectWithName(gameObject, "Back Bound").GetComponent<MeshRenderer>().enabled = backBoundEnabled;
         GETChildGameObjectWithName(gameObject, "Back Bound").GetComponent<BoxCollider>().enabled = backBoundEnabled;
     }
@@ -132,7 +143,7 @@ public class Cell : PersistableObject, IHeapItem<Cell>
     public void SetForwardBound(bool enableForwardBound)
     {
         forwardBoundEnabled = enableForwardBound;
-        GETChildGameObjectWithName(gameObject, "Forward").GetComponent<MeshRenderer>().enabled = forwardBoundEnabled;
+        GETChildGameObjectWithName(gameObject, "Forward").GetComponent<MeshRenderer>().enabled = !forwardBoundEnabled;
         GETChildGameObjectWithName(gameObject, "Forward Bound").GetComponent<MeshRenderer>().enabled = forwardBoundEnabled;
         GETChildGameObjectWithName(gameObject, "Forward Bound").GetComponent<BoxCollider>().enabled = forwardBoundEnabled;
     }
@@ -140,6 +151,7 @@ public class Cell : PersistableObject, IHeapItem<Cell>
     public void SetLeftBound(bool enableLeftBound)
     {
         leftBoundEnabled = enableLeftBound;
+        GETChildGameObjectWithName(gameObject, "Left").GetComponent<MeshRenderer>().enabled = !leftBoundEnabled;
         GETChildGameObjectWithName(gameObject, "Left Bound").GetComponent<MeshRenderer>().enabled = leftBoundEnabled;
         GETChildGameObjectWithName(gameObject, "Left Bound").GetComponent<BoxCollider>().enabled = leftBoundEnabled;
     }
@@ -147,7 +159,7 @@ public class Cell : PersistableObject, IHeapItem<Cell>
     public void SetRightBound(bool enableRightBound)
     {
         rightBoundEnabled = enableRightBound;
-        GETChildGameObjectWithName(gameObject, "Right").GetComponent<MeshRenderer>().enabled = rightBoundEnabled;
+        GETChildGameObjectWithName(gameObject, "Right").GetComponent<MeshRenderer>().enabled = !rightBoundEnabled;
         GETChildGameObjectWithName(gameObject, "Right Bound").GetComponent<MeshRenderer>().enabled = rightBoundEnabled;
         GETChildGameObjectWithName(gameObject, "Right Bound").GetComponent<BoxCollider>().enabled = rightBoundEnabled;
     }

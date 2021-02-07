@@ -22,7 +22,7 @@ public class PersistableObject : MonoBehaviour
 
     public virtual void Load (GameDataReader reader)
     {
-        // ObjectId = reader.ReadInt();
+        ObjectId = reader.ReadInt();
         transform.localPosition = reader.ReadVector3();
         transform.localRotation = reader.ReadQuaternion();
         transform.localScale = reader.ReadVector3();

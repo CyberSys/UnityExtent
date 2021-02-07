@@ -4,6 +4,7 @@ using UnityEngine;
 public class PersistentStorage : MonoBehaviour {
 
     string savePath;
+    public ObjectFactory objectFactory;
 
     void Awake () {
         savePath = System.IO.Path.Combine(Application.persistentDataPath, "saveFile");

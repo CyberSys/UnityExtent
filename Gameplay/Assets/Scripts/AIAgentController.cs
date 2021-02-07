@@ -74,11 +74,11 @@ public class AIAgentController : AgentController
         while (followingPath)
         {
             Cell currentCell = GetCurrentCell();
-            float distanceToCurrentCellCentre = Vector3.Distance(currentCell.centre, transform.position);
+            float distanceToCurrentCellCentre = Vector3.Distance(currentCell.GetCentre(), transform.position);
             
             if (distanceToCurrentCellCentre < 0.05f)
             {
-                Vector3 directionChange = currentCell.centre - path.lookPoints[0].centre;
+                Vector3 directionChange = currentCell.GetCentre() - path.lookPoints[0].GetCentre();
 
                 if (directionChange == Vector3.zero)
                 {

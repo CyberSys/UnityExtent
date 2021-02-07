@@ -7,14 +7,10 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Serialization;
 
-public class GridController : MonoBehaviour
+public class GridController : PersistableObject
 {
-    public GameObject player;
-    public GameObject aiPrefab;
-
-    public GameObject cellPrefab;
-    public GameObject aiNavAgentPrefab;
-
+    private PlayerAgentController player;
+    
     public int rowNumber = 10;
     public int columnNumber = 10;
     private float cellWidth = 1.0f;
@@ -111,72 +107,96 @@ public class GridController : MonoBehaviour
     }
 
     // Start is called before the first frame update
-    void Start()
+    public void GenerateGrid(Cell cellPrefab)
     {
-        GameObject gridObject = new GameObject {name = "Grid"};
-
-        gridObject.transform.parent = this.transform;
+        var gridObject = CreateGridObject();
 
         for (int i = 0; i < rowNumber; i++)
         {
-            GameObject rowObject = new GameObject();
-
-            rowObject.transform.parent = gridObject.transform;
-
-            rowObject.name = "" + i;
+            var rowObject = CreateRowObject(gridObject, i);
 
             List<Cell> row = new List<Cell>();
             for (int j = 0; j < columnNumber; j++)
             {
-                GameObject cellPrefab = Instantiate(this.cellPrefab, new Vector3(i + 0.5f, 0.0f, j + 0.5f),
-                    Quaternion.identity);
-
-                Cell prefabCell = cellPrefab.GetComponent<Cell>();
-
-                prefabCell.centre = new Vector3(i + 0.5f, 0.075f, j + 0.5f);
-
-                prefabCell.gridPosition = new Cell.GridPosition(i, j);
+                Cell newCell = Instantiate(cellPrefab, new Vector3(i + 0.5f, 0.075f, j + 0.5f), Quaternion.identity);
+                
+                newCell.SetNextCellIndicator(false);
+                newCell.SetSpawn(false);
+                
+                newCell.SetCentre(new Vector3(i + 0.5f, 0.075f, j + 0.5f));
 
                 if(i == 2 && j < 5 || i == 4 && j > 2 || i == 6 && j < 8)
-                    prefabCell.SetWalkable(false);
+                    newCell.SetWalkable(false);
                 else
                 {
-                    prefabCell.SetWalkable(true);
+                    newCell.SetWalkable(true);
                 }
+                
+                newCell.transform.parent = rowObject.transform;
 
-                row.Add(prefabCell);
-
-                cellPrefab.transform.parent = rowObject.transform;
-
-                cellPrefab.name = "" + j;
-
-                Cell newCell = cellPrefab.GetComponent<Cell>();
+                newCell.name = "(" + i +", " + j + ")";
 
                 if (j == 0)
                 {
                     newCell.SetBackBound(true);
+                }
+                else
+                {
+                    newCell.SetBackBound(false);
                 }
 
                 if (j == rowNumber - 1)
                 {
                     newCell.SetForwardBound(true);
                 }
+                else
+                {
+                    newCell.SetForwardBound(false);
+                }
 
                 if (i == 0)
                 {
                     newCell.SetLeftBound(true);
+                }
+                else
+                {
+                    newCell.SetLeftBound(false);
                 }
 
                 if (i == columnNumber - 1)
                 {
                     newCell.SetRightBound(true);
                 }
+                else
+                {
+                    newCell.SetRightBound(false);
+                }
+                
+                row.Add(newCell);
             }
 
             _grid.Add(row);
         }
         
         InitiliaseAgents();
+    }
+
+    private static GameObject CreateRowObject(GameObject gridObject, int i)
+    {
+        GameObject rowObject = new GameObject();
+
+        rowObject.transform.parent = gridObject.transform;
+
+        rowObject.name = "" + i;
+        return rowObject;
+    }
+
+    private GameObject CreateGridObject()
+    {
+        GameObject gridObject = new GameObject {name = "Grid"};
+
+        gridObject.transform.parent = this.transform;
+        return gridObject;
     }
 
     static IEnumerator Wait(float time)
@@ -188,19 +208,19 @@ public class GridController : MonoBehaviour
     {
         //Instantiate(aiPrefab, new Vector3(1.5f, 0.0f, 0.5f), Quaternion.identity);
 
-        // AgentController playerAgent = player.GetComponent<AgentController>();
-        // playerAgent.SetMovementDirection(Vector3.forward);
-        // playerAgent.SetStartingCell(0,0);
+        player = Instantiate(ObjectFactory.Get(2) as PlayerAgentController);
+        player.SetMovementDirection(Vector3.forward);
+        player.SetStartingCell(0,0);
         
-        
-        
-        AgentController aiAgent = Instantiate(aiPrefab, new Vector3(1.5f, 0.0f, 0.5f), Quaternion.identity).GetComponent<AgentController>();
-        aiAgent.SetMovementDirection(Vector3.forward);
-        aiAgent.SetStartingCell(0,1);
+        Camera.main.GetComponent<CameraController>().PlayerTransform = player.transform;
 
-        AIAgentController aiAgentController = (AIAgentController)aiAgent;
-        if (aiAgentController)
-            aiAgentController.target = GameObject.Find("/Target").transform;
+        // AgentController aiAgent = Instantiate(aiPrefab, new Vector3(1.5f, 0.0f, 0.5f), Quaternion.identity).GetComponent<AgentController>();
+        // aiAgent.SetMovementDirection(Vector3.forward);
+        // aiAgent.SetStartingCell(0,1);
+        //
+        // AIAgentController aiAgentController = (AIAgentController)aiAgent;
+        // if (aiAgentController)
+        //     aiAgentController.target = GameObject.Find("/Target").transform;
     }
 
     // Update is called once per frame
@@ -210,5 +230,72 @@ public class GridController : MonoBehaviour
         // {
         //     InitiliaseAgents();
         // }
+    }
+
+    private void OnDestroy()
+    {
+        Destroy(player.gameObject);
+    }
+
+    /////////////////////// persistable
+    ///
+    
+    private ObjectFactory ObjectFactory;
+
+    public void SetObjectFactory(ObjectFactory objectFactory)
+    {
+        ObjectFactory = objectFactory;
+    }
+    
+    public virtual void Save (GameDataWriter writer) {
+        base.Save(writer);
+        
+        writer.Write(rowNumber);
+        writer.Write(columnNumber);
+        writer.Write(cellWidth);
+
+        for (int x = 0; x < rowNumber; x++)
+        {
+            for (int y = 0; y < columnNumber; y++)
+            {
+                _grid[x][y].Save(writer);
+            }
+        }
+        
+        player.Save(writer);
+    }
+    
+    public virtual void Load (GameDataReader reader)
+    {
+        base.Load(reader);
+        
+        // Create Grid
+
+        rowNumber = reader.ReadInt();
+        columnNumber = reader.ReadInt();
+        cellWidth = reader.ReadFloat();
+        
+        _grid = new List<List<Cell>>(rowNumber);
+        
+        var gridObject = CreateGridObject();
+        
+        for (int x = 0; x < rowNumber; x++)
+        {
+            var rowObject = CreateRowObject(gridObject, x);
+            _grid.Add(new List<Cell>(columnNumber));
+            for (int y = 0; y < columnNumber; y++)
+            {
+                Cell newCell = Instantiate(ObjectFactory.Get(1) as Cell, rowObject.transform);
+                newCell.name = "(" + x +", " + y + ")";
+                newCell.Load(reader);
+                _grid[x].Add(newCell);
+            }
+        }
+        
+        // Create Player
+        player = Instantiate(ObjectFactory.Get(2) as PlayerAgentController);
+        player.Load(reader);
+
+        Camera.main.GetComponent<CameraController>().PlayerTransform = player.transform;
     }
 }
