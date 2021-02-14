@@ -17,6 +17,8 @@ public class GridController : PersistableObject
 
     private List<List<Cell>> _grid = new List<List<Cell>>();
 
+    private GameObject gridContainerObject;
+
     public int MaxSize
     {
         get
@@ -193,10 +195,10 @@ public class GridController : PersistableObject
 
     private GameObject CreateGridObject()
     {
-        GameObject gridObject = new GameObject {name = "Grid"};
+        gridContainerObject = new GameObject {name = "Grid"};
 
-        gridObject.transform.parent = this.transform;
-        return gridObject;
+        gridContainerObject.transform.parent = this.transform;
+        return gridContainerObject;
     }
 
     static IEnumerator Wait(float time)
@@ -208,7 +210,7 @@ public class GridController : PersistableObject
     {
         //Instantiate(aiPrefab, new Vector3(1.5f, 0.0f, 0.5f), Quaternion.identity);
 
-        player = Instantiate(ObjectFactory.Get(2) as PlayerAgentController);
+        player = Instantiate(ObjectFactory.Get(3) as PlayerAgentController);
         player.SetMovementDirection(Vector3.forward);
         player.SetStartingCell(0,0);
         
@@ -285,7 +287,7 @@ public class GridController : PersistableObject
             _grid.Add(new List<Cell>(columnNumber));
             for (int y = 0; y < columnNumber; y++)
             {
-                Cell newCell = Instantiate(ObjectFactory.Get(1) as Cell, rowObject.transform);
+                Cell newCell = Instantiate(ObjectFactory.Get(2) as Cell, rowObject.transform);
                 newCell.name = "(" + x +", " + y + ")";
                 newCell.Load(reader);
                 _grid[x].Add(newCell);
@@ -293,9 +295,45 @@ public class GridController : PersistableObject
         }
         
         // Create Player
-        player = Instantiate(ObjectFactory.Get(2) as PlayerAgentController);
+        player = Instantiate(ObjectFactory.Get(3) as PlayerAgentController);
         player.Load(reader);
 
         Camera.main.GetComponent<CameraController>().PlayerTransform = player.transform;
+    }
+    
+    public virtual void Set (GameDataReader reader)
+    {
+        base.Set(reader);
+        
+        // Create Grid
+
+        rowNumber = reader.ReadInt();
+        columnNumber = reader.ReadInt();
+        cellWidth = reader.ReadFloat();
+        
+        for (int x = 0; x < rowNumber; x++)
+        {
+            for (int y = 0; y < columnNumber; y++)
+            {
+                Cell newCell = _grid[x][y];
+                newCell.Load(reader);
+            }
+        }
+        
+        // Create Player
+        player.Load(reader);
+
+        Camera.main.GetComponent<CameraController>().PlayerTransform = player.transform;
+    }
+    
+    public static int SizeOf(int numberOfRows, int numberOfColumns)
+    {
+        var value = PersistableObject.SizeOf();
+
+        value += sizeof(int) + sizeof(int) + sizeof(int);
+        value += numberOfRows * numberOfColumns * Cell.SizeOf();
+        value += PlayerAgentController.SizeOf();
+
+        return value;
     }
 }

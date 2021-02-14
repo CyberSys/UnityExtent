@@ -45,8 +45,8 @@ public class Cell : PersistableObject, IHeapItem<Cell>
             Y = y;
         }
 
-        public int X { get; }
-        public int Y { get; }
+        public int X { get; set; }
+        public int Y { get; set; }
 
         public override string ToString() => $"({X}, {Y})";
     }
@@ -187,7 +187,6 @@ public class Cell : PersistableObject, IHeapItem<Cell>
         writer.Write(nextCell);
         writer.Write(spawn);
         writer.Write(walkable);
-        
         writer.Write(backBoundEnabled);
         writer.Write(forwardBoundEnabled);
         writer.Write(leftBoundEnabled);
@@ -203,10 +202,48 @@ public class Cell : PersistableObject, IHeapItem<Cell>
         SetNextCellIndicator(reader.ReadBool());
         spawn = reader.ReadBool();
         SetWalkable(reader.ReadBool());
-        
         SetBackBound(reader.ReadBool());
         SetForwardBound(reader.ReadBool());
         SetLeftBound(reader.ReadBool());
         SetRightBound(reader.ReadBool());
+    }
+    
+    public virtual void Set (GameDataReader reader)
+    {
+        base.Load(reader);
+
+        centre = reader.ReadVector3();
+        gridPosition.X = reader.ReadInt();
+        gridPosition.Y = reader.ReadInt();
+        SetNextCellIndicator(reader.ReadBool());
+        spawn = reader.ReadBool();
+        SetWalkable(reader.ReadBool());
+        SetBackBound(reader.ReadBool());
+        SetForwardBound(reader.ReadBool());
+        SetLeftBound(reader.ReadBool());
+        SetRightBound(reader.ReadBool());
+    }
+    
+    public static int SizeOf()
+    {
+        // base class + Vector3 centre
+        // + GridPosition gridposition
+        // + bool nextCell
+        // + bool spawn
+        // + bool walkable
+        // + bool back bound
+        // + bool forward bound
+        // + bool left bound
+        // + bool right bound
+        return PersistableObject.SizeOf()
+               + (sizeof(float) * 3)
+               + (sizeof(int) * 2)
+               + sizeof(bool)
+               + sizeof(bool)
+               + sizeof(bool)
+               + sizeof(bool)
+               + sizeof(bool)
+               + sizeof(bool)
+               + sizeof(bool);
     }
 }

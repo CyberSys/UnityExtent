@@ -27,4 +27,15 @@ public class PersistableObject : MonoBehaviour
         transform.localRotation = reader.ReadQuaternion();
         transform.localScale = reader.ReadVector3();
     }
+
+    public virtual void Set(GameDataReader reader)
+    {
+        Load(reader);
+    }
+
+    public static int SizeOf()
+    {
+        // obectId + Vector3 position + quaternion rotation + Vector3 scale
+        return sizeof(int) + (sizeof(float) * 3) + (sizeof(float) * 4) + (sizeof(float) * 3);
+    }
 }

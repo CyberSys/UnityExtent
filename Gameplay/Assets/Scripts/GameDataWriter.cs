@@ -36,4 +36,9 @@ public class GameDataWriter
         writer.Write(value.y);
         writer.Write(value.z);
     }
+
+    public long Size()
+    {
+        return writer.BaseStream.Length;
+    }
 }

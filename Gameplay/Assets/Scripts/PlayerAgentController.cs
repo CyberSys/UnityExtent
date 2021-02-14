@@ -69,4 +69,15 @@ public class PlayerAgentController : AgentController
         // SetLeftBound(reader.ReadBool());
         // SetRightBound(reader.ReadBool());
     }
+    
+    public virtual void Set (GameDataReader reader)
+    {
+        Load(reader);
+    }
+    
+    public static int SizeOf()
+    {
+        // base class + Vector3 movement direction
+        return PersistableObject.SizeOf() + (sizeof(float) * 3);
+    }
 }
