@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,8 +7,11 @@ public class AIAgentController : AgentController
 {
     const float minPathUpdateTime = .2f;
     const float pathUpdateMoveThreshold = .5f;
-    
-    public Transform target;
+
+    public Transform startPosition;
+
+    public int currentPatrolTarget = 0;
+    public List<Transform> patrolTargets = new List<Transform>();
     public float speed = 2;
     public float turnSpeed = 3;
     public float turnDst = 5;
@@ -15,13 +19,16 @@ public class AIAgentController : AgentController
     
     Path path;
     
-    private bool pathUpToDate = true;
-    
     // Start is called before the first frame update
     public override void Start()
     {
         base.Start();
-        StartCoroutine (UpdatePath ());
+    }
+
+    public void StartPatrol()
+    {
+        if(patrolTargets.Count > 0)
+            StartCoroutine (UpdatePath ());
     }
     
     public void OnPathFound(List<Cell> waypoints, bool pathSuccessful) {
@@ -36,33 +43,39 @@ public class AIAgentController : AgentController
     // Update is called once per frame
     public override void FixedUpdate()
     {
-        if (!pathUpToDate)
-        {
-            pathUpToDate = true;
-            ResetCurrentCellChanged();
-            StartCoroutine(UpdatePath());
-        }
-
-        if(GetCurrentCell() != null)
+        if(GetCurrentCell() != null && path != null)
             base.FixedUpdate();
     }
     
     IEnumerator UpdatePath() {
-
         if (Time.timeSinceLevelLoad < .3f) {
             yield return new WaitForSeconds (.3f);
         }
-        PathRequestManager.RequestPath (new PathRequest(GetMovementDirection(),transform.position, target.position, OnPathFound));
+        PathRequestManager.RequestPath (new PathRequest(GetMovementDirection(),transform.position, patrolTargets[currentPatrolTarget].position, OnPathFound));
 
         float sqrMoveThreshold = pathUpdateMoveThreshold * pathUpdateMoveThreshold;
-        Vector3 targetPosOld = target.position;
+        Vector3 targetPosOld = patrolTargets[currentPatrolTarget].position;
 
         while (true) {
             yield return new WaitForSeconds (minPathUpdateTime);
-            print (((target.position - targetPosOld).sqrMagnitude) + "    " + sqrMoveThreshold);
-            if ((target.position - targetPosOld).sqrMagnitude > sqrMoveThreshold) {
-                PathRequestManager.RequestPath (new PathRequest(GetMovementDirection(), transform.position, target.position, OnPathFound));
-                targetPosOld = target.position;
+            if (patrolTargets.Count > 0)
+            {
+                print(((patrolTargets[currentPatrolTarget].position - targetPosOld).sqrMagnitude) + "    " +
+                      sqrMoveThreshold);
+
+                if (GetCurrentCell().transform.position == patrolTargets[currentPatrolTarget].position)
+                {
+                    currentPatrolTarget++;
+                    if (currentPatrolTarget >= patrolTargets.Count)
+                        currentPatrolTarget = 0;
+                }
+                
+                if ((patrolTargets[currentPatrolTarget].position - targetPosOld).sqrMagnitude > sqrMoveThreshold)
+                {
+                    PathRequestManager.RequestPath(new PathRequest(GetMovementDirection(), transform.position,
+                        patrolTargets[currentPatrolTarget].position, OnPathFound));
+                    targetPosOld = patrolTargets[currentPatrolTarget].position;
+                }
             }
         }
     }
@@ -71,68 +84,66 @@ public class AIAgentController : AgentController
     {
         bool followingPath = true;
 
-        while (followingPath)
+        while (followingPath && path.lookPoints.Count > 0)
         {
             Cell currentCell = GetCurrentCell();
             float distanceToCurrentCellCentre = Vector3.Distance(currentCell.GetCentre(), transform.position);
             
-            if (distanceToCurrentCellCentre < 0.05f)
-            {
-                Vector3 directionChange = currentCell.GetCentre() - path.lookPoints[0].GetCentre();
+            bool movingTowards = isMovingTowards(currentCell.GetCentre(), transform.position, GetComponent<Rigidbody>().velocity);
 
-                if (directionChange == Vector3.zero)
+            if (distanceToCurrentCellCentre < 0.05f || !movingTowards)
+            {
+                for (int i = 0; i < path.lookPoints.Count; i++)
                 {
-                    followingPath = false;
-                    pathUpToDate = false;
-                    yield return null;
+                    if (currentCell.GetCentre() == path.lookPoints[i].GetCentre())
+                    {
+                        path.lookPoints.RemoveAt(i);
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
-                else if (directionChange == -Vector3.right)
+
+                if (path.lookPoints.Count > 0)
                 {
-                    if(GetMovementDirection() == Vector3.forward)
-                        ChangeMovementDirection(MovementAction.Movement.TurnRight);
-                    if(GetMovementDirection() == Vector3.back)
-                        ChangeMovementDirection(MovementAction.Movement.TurnLeft);
-                    
-                    RemoveCellFromPath();
-                }
-                else if (directionChange == -Vector3.left)
-                {
-                    if(GetMovementDirection() == Vector3.forward)
-                        ChangeMovementDirection(MovementAction.Movement.TurnLeft);
-                    if(GetMovementDirection() == Vector3.back)
-                        ChangeMovementDirection(MovementAction.Movement.TurnRight);
-                    
-                    RemoveCellFromPath();
-                }
-                else if (directionChange == -Vector3.forward)
-                {
-                    if(GetMovementDirection() == Vector3.right)
-                        ChangeMovementDirection(MovementAction.Movement.TurnLeft);
-                    if(GetMovementDirection() == Vector3.left)
-                        ChangeMovementDirection(MovementAction.Movement.TurnRight);
-                    
-                    RemoveCellFromPath();
-                }
-                else if (directionChange == -Vector3.back)
-                {
-                    if(GetMovementDirection() == Vector3.right)
-                        ChangeMovementDirection(MovementAction.Movement.TurnRight);
-                    if(GetMovementDirection() == Vector3.left)
-                        ChangeMovementDirection(MovementAction.Movement.TurnLeft);
-                    
-                    RemoveCellFromPath();
+                    Vector3 directionChange = path.lookPoints[0].GetCentre() - currentCell.GetCentre();
+
+                    if (directionChange != Vector3.zero)
+                    {
+                        if (directionChange == Vector3.right)
+                        {
+                            if (GetMovementDirection() == Vector3.forward)
+                                ChangeMovementDirection(MovementAction.Movement.TurnRight);
+                            if (GetMovementDirection() == Vector3.back)
+                                ChangeMovementDirection(MovementAction.Movement.TurnLeft);
+                        }
+                        else if (directionChange == Vector3.left)
+                        {
+                            if (GetMovementDirection() == Vector3.forward)
+                                ChangeMovementDirection(MovementAction.Movement.TurnLeft);
+                            if (GetMovementDirection() == Vector3.back)
+                                ChangeMovementDirection(MovementAction.Movement.TurnRight);
+                        }
+                        else if (directionChange == Vector3.forward)
+                        {
+                            if (GetMovementDirection() == Vector3.right)
+                                ChangeMovementDirection(MovementAction.Movement.TurnLeft);
+                            if (GetMovementDirection() == Vector3.left)
+                                ChangeMovementDirection(MovementAction.Movement.TurnRight);
+                        }
+                        else if (directionChange == Vector3.back)
+                        {
+                            if (GetMovementDirection() == Vector3.right)
+                                ChangeMovementDirection(MovementAction.Movement.TurnRight);
+                            if (GetMovementDirection() == Vector3.left)
+                                ChangeMovementDirection(MovementAction.Movement.TurnLeft);
+                        }
+                    }
                 }
             }
-            yield return null;
-        }
-    }
 
-    private void RemoveCellFromPath()
-    {
-        if (path.lookPoints.Count > 1)
-        {
-            path.lookPoints[0].SetPathCellIndicator(false);
-            path.lookPoints.RemoveAt(0);
+            yield return null;
         }
     }
 }

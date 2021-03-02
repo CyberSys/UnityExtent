@@ -325,8 +325,6 @@ public class AgentController : PersistableObject
         Rigidbody = gameObject.GetComponent(typeof(Rigidbody)) as Rigidbody;
         BoxCollider = gameObject.GetComponent(typeof(BoxCollider)) as BoxCollider;
         
-        SetMovementDirection(Vector3.forward);
-        
         GridController = GameObject.FindObjectOfType<GridController>();
 
         if (this.gameObject.layer == 9) // AI
@@ -465,9 +463,10 @@ public class AgentController : PersistableObject
         // }
     }
     
-    private bool isMovingTowards(Vector3 testPoint, Vector3 objectPosition, Vector3 objectVelocty)
+    // https://stackoverflow.com/questions/28162335/vector-math-find-if-object-is-moving-towards-or-away-from-a-point
+    public bool isMovingTowards(Vector3 targetPosition, Vector3 objectPosition, Vector3 objectVelocty)
     {    
-        Vector3 toPoint = testPoint - objectPosition; //a vector going from your obect to the point
+        Vector3 toPoint = targetPosition - objectPosition; //a vector going from your obect to the point
         float result = Vector3.Dot(toPoint, objectVelocty);
         return result >= 0;
     }
@@ -499,8 +498,8 @@ public class AgentController : PersistableObject
         if (MovementDirection == Vector3.back)
             transform.rotation = Quaternion.Euler(0, 180, 0);
 
-        float distanceToCurrentCellCentre = Vector3.Distance(_currentCell.GetCentre(), transform.position);
-        float distanceToNextCellCentre = Vector3.Distance(_nextCell.GetCentre(), transform.position);
+        //float distanceToCurrentCellCentre = Vector3.Distance(_currentCell.GetCentre(), transform.position);
+        //float distanceToNextCellCentre = Vector3.Distance(_nextCell.GetCentre(), transform.position);
         
         AdjustPosition();
 

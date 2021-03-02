@@ -64,6 +64,7 @@ public class Cell : PersistableObject, IHeapItem<Cell>
     private bool forwardBoundEnabled = false;
     private bool leftBoundEnabled = false;
     private bool rightBoundEnabled = false;
+    private bool accessible = false; // can player enter
     
     public int movementPenalty;
 
@@ -173,6 +174,43 @@ public class Cell : PersistableObject, IHeapItem<Cell>
     public bool IsWalkable()
     {
         return walkable;
+    }
+
+    public void SetAccessible(bool canAccess)
+    {
+        accessible = canAccess;
+        GETChildGameObjectWithName(gameObject, "Centre").GetComponent<MeshRenderer>().enabled = accessible;
+    }
+
+    public bool IsAccessibleFromCell(Cell currentCell, Vector3 currentMovementDirection)
+    {
+        float distanceFromCurrentCell = Vector3.Distance(currentCell.GetCentre(), GetCentre());
+
+        if (distanceFromCurrentCell > 1.0f)
+            return false;
+
+        int x = gridPosition.X - currentCell.gridPosition.X;
+        int y = gridPosition.Y - currentCell.gridPosition.Y;
+        
+        if (x == 0 && y == 0
+            || x == -1 && y == 1 || x == 1 && y == 1 // top diagonals ignored
+            || x == -1 && y == -1 || x == 1 && y == -1) // bottom diagonals ignored
+            return false;
+                
+        if (currentMovementDirection == Vector3.forward
+            && x == 0 && y == -1) // if moving forward cannot get to cells behind without turning
+            return false;
+        if (currentMovementDirection == Vector3.back
+            && x == 0 && y == 1) // if moving backward cannot get to cells forward without turning
+            return false;
+        if (currentMovementDirection == Vector3.left
+            && x == 1 && y == 0) // if moving left cannot get to cells to the right without turning
+            return false;
+        if (currentMovementDirection == Vector3.right
+            && x == -1 && y == 0) // if moving right cannot get to cells to the left without turning
+            return false;
+
+        return true;
     }
     
     /////////////////////// persistable

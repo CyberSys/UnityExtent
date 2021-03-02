@@ -8,7 +8,7 @@ public class Pathfinding : MonoBehaviour
     private GridController _gridController;
 
     // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
         _gridController = gameObject.GetComponent<GridController>();
     }
@@ -25,6 +25,7 @@ public class Pathfinding : MonoBehaviour
         sw.Start();
         
         List<Cell> pathCells = new List<Cell>();
+        List<Vector3> pathDirections = new List<Vector3>();
         bool pathSuccess = false;
         
         Cell startCell = _gridController.GetCellFromWorldPosition(request.pathStart);
@@ -36,10 +37,13 @@ public class Pathfinding : MonoBehaviour
             Heap<Cell> openSet = new Heap<Cell>(_gridController.MaxSize);
             HashSet<Cell> closedSet = new HashSet<Cell>();
             openSet.Add(startCell);
+            
+            Vector3 currentMovementDirection = request.currentMovementDirection;
 
             while (openSet.Count > 0)
             {
                 Cell currentCell = openSet.RemoveFirst();
+                
                 closedSet.Add(currentCell);
 
                 if (currentCell == targetCell)
@@ -50,23 +54,25 @@ public class Pathfinding : MonoBehaviour
                     break;
                 }
 
-                foreach (var neighbour in _gridController.GetNeighbours(currentCell))
+                List<Cell> neighbours;
+
+                if (currentCell == startCell)  // because of the way the movement works it is enough to make sure the first cell chosen is in a valid direction, because after that the path will work itself out 
                 {
+                    neighbours = _gridController.GetAccessibleNeighbours(currentCell, currentMovementDirection);
+                }
+                else
+                {
+                    neighbours = _gridController.GetNeighbours(currentCell);
+                }
+
+                foreach (var neighbour in neighbours)
+                {
+                    neighbour.IsAccessibleFromCell(currentCell, currentMovementDirection);
                     if (!neighbour.IsWalkable() || closedSet.Contains(neighbour))
                     {
                         continue;
                     }
                     
-                    // check that you can actually get to the neighbours (can't instantly turn 180)
-                    if (currentCell == startCell)
-                    {
-                        if(request.currentMovementDirection == Vector3.forward && neighbour.gridPosition.Y < currentCell.gridPosition.Y
-                           || request.currentMovementDirection == Vector3.back && neighbour.gridPosition.Y > currentCell.gridPosition.Y
-                           || request.currentMovementDirection == Vector3.left && neighbour.gridPosition.X > currentCell.gridPosition.X
-                           || request.currentMovementDirection == Vector3.right && neighbour.gridPosition.X < currentCell.gridPosition.X)
-                            continue;
-                    }
-
                     int newMovementCostToNeighbour = currentCell.gCost + GetDistance(currentCell, neighbour) + neighbour.movementPenalty;
 
                     if (newMovementCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
@@ -83,13 +89,13 @@ public class Pathfinding : MonoBehaviour
                 }
             }
         }
-        if (pathSuccess) {
+        if (pathSuccess == true) {
             pathCells = RetracePath(startCell,targetCell);
-            pathSuccess = pathCells.Count > 0;
+            pathSuccess = pathCells.Count > 0 ? true : false;
         }
         callback (new PathResult (pathCells, pathSuccess, request.callback));
     }
-
+    
     List<Cell> RetracePath(Cell startCell, Cell endCell)
     {
         List<Cell> path = new List<Cell>();
@@ -107,7 +113,7 @@ public class Pathfinding : MonoBehaviour
         //path = SimplifyPath(path);
         
         path.Reverse();
-
+        
         _gridController.SetPath(path);
 
         return path;
@@ -138,5 +144,10 @@ public class Pathfinding : MonoBehaviour
         return 14 * distX + 10 * (distY - distX);*/
 
         return distX + distY;
+    }
+
+    Vector3 GetDirection(Cell currentCell, Cell nextCell)
+    {
+        return nextCell.GetCentre() - currentCell.GetCentre();
     }
 }

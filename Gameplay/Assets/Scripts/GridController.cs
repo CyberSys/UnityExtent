@@ -16,6 +16,8 @@ public class GridController : PersistableObject
     private float cellWidth = 1.0f;
 
     private List<List<Cell>> _grid = new List<List<Cell>>();
+    
+    private List<Cell> playerAccessibleCells = new List<Cell>();
 
     private GameObject gridContainerObject;
 
@@ -46,9 +48,33 @@ public class GridController : PersistableObject
     }
     public Cell GetCell(int x, int y)
     {
-        return _grid[Mathf.Clamp(x, 0, rowNumber)][Mathf.Clamp(y, 0, columnNumber)];
+        return _grid[Mathf.Clamp(x, 0, rowNumber-1)][Mathf.Clamp(y, 0, columnNumber-1)];
     }
 
+    public List<Cell> GetAllNeighbours(Cell cell)
+    {
+        List<Cell> neighbours = new List<Cell>();
+
+        for (int x = -1; x <= 1; x++)
+        {
+            for (int y = -1; y <= 1; y++)
+            {
+                if(x==0 && y == 0)
+                    continue;
+
+                int checkX = cell.gridPosition.X + x;
+                int checkY = cell.gridPosition.Y + y;
+
+                if (checkX >= 0 && checkX < rowNumber && checkY >= 0 && checkY < columnNumber)
+                {
+                    neighbours.Add(GetCell(checkX,checkY));
+                }
+            }
+        }
+
+        return neighbours;
+    }
+    
     public List<Cell> GetNeighbours(Cell cell)
     {
         List<Cell> neighbours = new List<Cell>();
@@ -68,6 +94,45 @@ public class GridController : PersistableObject
                 if (checkX >= 0 && checkX < rowNumber && checkY >= 0 && checkY < columnNumber)
                 {
                     neighbours.Add(GetCell(checkX,checkY));
+                }
+            }
+        }
+
+        return neighbours;
+    }
+    
+    public List<Cell> GetAccessibleNeighbours(Cell cell, Vector3 currentMovementDirection)
+    {
+        List<Cell> neighbours = new List<Cell>();
+
+        for (int x = -1; x <= 1; x++)
+        {
+            for (int y = -1; y <= 1; y++)
+            {
+                if (x == 0 && y == 0
+                    || x == -1 && y == 1 || x == 1 && y == 1 // top diagonals ignored
+                    || x == -1 && y == -1 || x == 1 && y == -1) // bottom diagonals ignored
+                    continue;
+                
+                if (currentMovementDirection == Vector3.forward
+                    && x == 0 && y == -1) // if moving forward cannot get to cells behind without turning
+                    continue;
+                if (currentMovementDirection == Vector3.back
+                    && x == 0 && y == 1) // if moving backward cannot get to cells forward without turning
+                    continue;
+                if (currentMovementDirection == Vector3.left
+                    && x == 1 && y == 0) // if moving left cannot get to cells to the right without turning
+                    continue;
+                if (currentMovementDirection == Vector3.right
+                    && x == -1 && y == 0) // if moving right cannot get to cells to the left without turning
+                    continue;
+                
+                int checkX = cell.gridPosition.X + x;
+                int checkY = cell.gridPosition.Y + y;
+
+                if (checkX >= 0 && checkX < rowNumber && checkY >= 0 && checkY < columnNumber)
+                {
+                    neighbours.Add(GetCell(checkX, checkY));
                 }
             }
         }
@@ -127,12 +192,14 @@ public class GridController : PersistableObject
                 
                 newCell.SetCentre(new Vector3(i + 0.5f, 0.075f, j + 0.5f));
 
-                if(i == 2 && j < 5 || i == 4 && j > 2 || i == 6 && j < 8)
-                    newCell.SetWalkable(false);
-                else
-                {
-                    newCell.SetWalkable(true);
-                }
+                // if(i == 2 && j < 5 || i == 4 && j > 2 || i == 6 && j < 8)
+                //     newCell.SetWalkable(false);
+                // else
+                // {
+                //     newCell.SetWalkable(true);
+                // }
+                
+                newCell.SetWalkable(true);
                 
                 newCell.transform.parent = rowObject.transform;
 
@@ -211,27 +278,52 @@ public class GridController : PersistableObject
         //Instantiate(aiPrefab, new Vector3(1.5f, 0.0f, 0.5f), Quaternion.identity);
 
         player = Instantiate(ObjectFactory.Get(3) as PlayerAgentController);
-        player.SetMovementDirection(Vector3.forward);
-        player.SetStartingCell(0,0);
+        // player.SetMovementDirection(Vector3.forward);
+        player.SetStartingCell(2,2);
         
         Camera.main.GetComponent<CameraController>().PlayerTransform = player.transform;
 
-        // AgentController aiAgent = Instantiate(aiPrefab, new Vector3(1.5f, 0.0f, 0.5f), Quaternion.identity).GetComponent<AgentController>();
-        // aiAgent.SetMovementDirection(Vector3.forward);
-        // aiAgent.SetStartingCell(0,1);
-        //
-        // AIAgentController aiAgentController = (AIAgentController)aiAgent;
-        // if (aiAgentController)
-        //     aiAgentController.target = GameObject.Find("/Target").transform;
+        AgentController aiAgent = Instantiate(ObjectFactory.Get(4) as AIAgentController, new Vector3(0.5f, 0.0f, 6.5f), Quaternion.identity).GetComponent<AgentController>();
+        aiAgent.SetMovementDirection(Vector3.back);
+        aiAgent.SetStartingCell(0,8);
+        
+        AIAgentController aiAgentController = (AIAgentController)aiAgent;
+        if (aiAgentController)
+        {
+            // original
+            // aiAgentController.patrolTargets.Add(_grid[0][0].transform);
+            // aiAgentController.patrolTargets.Add(_grid[5][0].transform);
+            // aiAgentController.patrolTargets.Add(_grid[5][4].transform);
+            // aiAgentController.patrolTargets.Add(_grid[3][8].transform);
+            // aiAgentController.patrolTargets.Add(_grid[0][8].transform);
+            
+            aiAgentController.patrolTargets.Add(_grid[0][0].transform);
+            aiAgentController.patrolTargets.Add(_grid[2][0].transform);
+            aiAgentController.patrolTargets.Add(_grid[1][0].transform);
+            aiAgentController.patrolTargets.Add(_grid[3][8].transform);
+            aiAgentController.patrolTargets.Add(_grid[0][5].transform);
+            
+            aiAgentController.StartPatrol();
+        }
     }
 
     // Update is called once per frame
     void FixedUpdate()
     {
-        // if (gameObject.GetComponent<NavMeshSurface>() && gameObject.GetComponent<NavMeshSurface>().navMeshData != null && !AgentsInitialised)
-        // {
-        //     InitiliaseAgents();
-        // }
+        foreach (var cell in playerAccessibleCells)
+        {
+            cell.SetAccessible(false);
+        }
+        
+        playerAccessibleCells = GetAccessibleNeighbours(player.GetCurrentCell(), player.GetMovementDirection());
+
+        foreach (var cell in playerAccessibleCells)
+        {
+            cell.SetAccessible(true);
+        }
+        bool test1 = _grid[0][1].IsAccessibleFromCell(_grid[0][0], Vector3.forward);
+        bool test2 = _grid[2][0].IsAccessibleFromCell(_grid[3][0], Vector3.forward);
+        int i = 0;
     }
 
     private void OnDestroy()
