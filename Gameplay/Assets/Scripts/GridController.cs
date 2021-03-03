@@ -328,7 +328,7 @@ public class GridController : PersistableObject
 
     private void OnDestroy()
     {
-        Destroy(player.gameObject);
+        //Destroy(player.gameObject);
     }
 
     /////////////////////// persistable

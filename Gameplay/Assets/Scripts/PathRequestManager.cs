@@ -22,7 +22,7 @@ public class PathRequestManager : MonoBehaviour {
 			lock (results) {
 				for (int i = 0; i < itemsInQueue; i++) {
 					PathResult result = results.Dequeue ();
-					result.callback (result.pathCells, result.success);
+					result.callback (result.pathCells, result.success, result.patrolTargetIndex);
 				}
 			}
 		}
@@ -40,34 +40,34 @@ public class PathRequestManager : MonoBehaviour {
 			results.Enqueue (result);
 		}
 	}
-
-
-
 }
 
 public struct PathResult {
 	public List<Cell> pathCells;
 	public bool success;
-	public Action<List<Cell>, bool> callback;
+	public int patrolTargetIndex;
+	public Action<List<Cell>, bool, int> callback;
 
-	public PathResult (List<Cell> pathCells, bool success, Action<List<Cell>, bool> callback)
+	public PathResult (List<Cell> pathCells, bool success, int patrolTargetIndex, Action<List<Cell>, bool, int> callback)
 	{
 		this.pathCells = pathCells;
 		this.success = success;
+		this.patrolTargetIndex = patrolTargetIndex;
 		this.callback = callback;
 	}
-
 }
 
 public struct PathRequest
 {
+	public int patrolTargetIndex;
 	public Vector3 currentMovementDirection;
 	public Vector3 pathStart;
 	public Vector3 pathEnd;
-	public Action<List<Cell>, bool> callback;
+	public Action<List<Cell>, bool, int> callback;
 
-	public PathRequest(Vector3 _currentMovementDirection, Vector3 _start, Vector3 _end, Action<List<Cell>, bool> _callback)
+	public PathRequest(int _patrolTargetIndex, Vector3 _currentMovementDirection, Vector3 _start, Vector3 _end, Action<List<Cell>, bool, int> _callback)
 	{
+		patrolTargetIndex = _patrolTargetIndex;
 		currentMovementDirection = _currentMovementDirection;
 		pathStart = _start;
 		pathEnd = _end;

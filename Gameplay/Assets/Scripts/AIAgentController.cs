@@ -16,9 +16,12 @@ public class AIAgentController : AgentController
     public float turnSpeed = 3;
     public float turnDst = 5;
     public float stoppingDst = 1;
-    
-    Path path;
-    
+
+    private Path currentPatrol;
+    private List<Path> patrolPaths;
+    private List<Vector3> startPositions;
+    private List<Vector3> startDirections;
+
     // Start is called before the first frame update
     public override void Start()
     {
@@ -27,23 +30,73 @@ public class AIAgentController : AgentController
 
     public void StartPatrol()
     {
-        if(patrolTargets.Count > 0)
-            StartCoroutine (UpdatePath ());
+        if (patrolTargets.Count > 0)
+        {   
+            patrolPaths = new List<Path>();
+            startPositions = new List<Vector3>();
+            startDirections = new List<Vector3>();
+
+            for (int i = 0; i < patrolTargets.Count; i++)
+            {
+                startPositions.Add(GetCurrentCell().transform.position);
+                startDirections.Add(GetMovementDirection());
+                patrolPaths.Add(new Path(new List<Cell>(),startPositions[i], 0.0f,0.0f));
+            }
+            
+            StartCoroutine(UpdatePath());
+        }
+    }
+
+    public void StopPatrol()
+    {
+        StopCoroutine(UpdatePath ());
     }
     
-    public void OnPathFound(List<Cell> waypoints, bool pathSuccessful) {
+    public void OnPathFound(List<Cell> waypoints, bool pathSuccessful, int patrolTargetIndex) {
         if (pathSuccessful) {
-            path = new Path(waypoints, transform.position, turnDst, stoppingDst);
-            
-            StopCoroutine("FollowPath");
-            StartCoroutine("FollowPath");
+            patrolPaths[patrolTargetIndex] = new Path(waypoints, startPositions[patrolTargetIndex], turnDst, stoppingDst);
+
+            if (patrolTargetIndex == currentPatrolTarget)
+            {
+                ChangePath();
+            }
         }
     }
 
     // Update is called once per frame
     public override void FixedUpdate()
     {
-        if(GetCurrentCell() != null && path != null)
+        for (int i = 0; i < patrolPaths.Count; i++)
+        {
+            if (patrolPaths[i].lookPoints.Count > 0)
+            {
+                LineRenderer lineRenderer = GetComponent<LineRenderer>();
+
+                int totalPoints = 0;
+
+                foreach (var path in patrolPaths)
+                {
+                    totalPoints += path.lookPoints.Count;
+                }
+
+                Vector3[] points = new Vector3[totalPoints];
+
+                int currentPoint = 0;
+                
+                foreach (var path in patrolPaths)
+                {
+                    for (int j = 0; j < path.lookPoints.Count; j++)
+                    {
+                        points[currentPoint] = path.lookPoints[j].transform.position;
+                        currentPoint++;
+                    }
+                }
+                lineRenderer.positionCount = points.Length;
+                lineRenderer.SetPositions(points);
+            }
+        }
+
+        if(GetCurrentCell() != null && patrolPaths != null)
             base.FixedUpdate();
     }
     
@@ -51,40 +104,95 @@ public class AIAgentController : AgentController
         if (Time.timeSinceLevelLoad < .3f) {
             yield return new WaitForSeconds (.3f);
         }
-        PathRequestManager.RequestPath (new PathRequest(GetMovementDirection(),transform.position, patrolTargets[currentPatrolTarget].position, OnPathFound));
+
+        PathRequestManager.RequestPath (new PathRequest(0,startDirections[0], startPositions[0], patrolTargets[0].position, OnPathFound));
 
         float sqrMoveThreshold = pathUpdateMoveThreshold * pathUpdateMoveThreshold;
         Vector3 targetPosOld = patrolTargets[currentPatrolTarget].position;
 
         while (true) {
             yield return new WaitForSeconds (minPathUpdateTime);
-            if (patrolTargets.Count > 0)
+            for (int i = 0; i < patrolTargets.Count; i++)
             {
-                print(((patrolTargets[currentPatrolTarget].position - targetPosOld).sqrMagnitude) + "    " +
-                      sqrMoveThreshold);
+                //print(((patrolTargets[currentPatrolTarget].position - targetPosOld).sqrMagnitude) + "    " + sqrMoveThreshold);
 
-                if (GetCurrentCell().transform.position == patrolTargets[currentPatrolTarget].position)
+                bool readyToRequest = false; // protecting against requesting a path before we have enough information
+    
+                if (i > 0 && patrolPaths[i - 1].lookPoints.Count > 0)
+                {
+                    startPositions[i] = patrolTargets[i - 1].transform.position;
+                    startDirections[i] = CalculateStartingMovementDirection(i);
+                    readyToRequest = true;
+                }
+                else if (i == 0)
+                {
+                    readyToRequest = true;
+                }
+
+                Cell currentCell = GetCurrentCell();
+
+                Cell currentPatrolTargetCell =
+                    GridController.GetCellFromWorldPosition(patrolTargets[currentPatrolTarget].position);
+
+                if(i == currentPatrolTarget && currentCell.gridPosition == currentPatrolTargetCell.gridPosition)
                 {
                     currentPatrolTarget++;
                     if (currentPatrolTarget >= patrolTargets.Count)
                         currentPatrolTarget = 0;
+                    
+                    ChangePath();
                 }
                 
-                if ((patrolTargets[currentPatrolTarget].position - targetPosOld).sqrMagnitude > sqrMoveThreshold)
+                if (readyToRequest && (patrolTargets[i].position - targetPosOld).sqrMagnitude > sqrMoveThreshold)
                 {
-                    PathRequestManager.RequestPath(new PathRequest(GetMovementDirection(), transform.position,
-                        patrolTargets[currentPatrolTarget].position, OnPathFound));
-                    targetPosOld = patrolTargets[currentPatrolTarget].position;
+                    PathRequestManager.RequestPath(new PathRequest(i, startDirections[i], startPositions[i],
+                        patrolTargets[i].position, OnPathFound));
+                    targetPosOld = patrolTargets[i].position;
                 }
             }
         }
     }
-    
+
+    private void ChangePath()
+    {
+        currentPatrol = patrolPaths[currentPatrolTarget];
+
+        StopCoroutine("FollowPath");
+        StartCoroutine("FollowPath");
+    }
+
+    private Vector3 CalculateStartingMovementDirection(int i)
+    {
+        Vector3 startingMovementDirection;
+        
+        int previousPatrolIndex = i - 1;
+        
+        if (i > 0)
+        {
+            if (patrolPaths[previousPatrolIndex].lookPoints.Count >= 2)
+            {
+                int numberOfLookPoints = patrolPaths[previousPatrolIndex].lookPoints.Count;
+                startingMovementDirection = patrolPaths[previousPatrolIndex].lookPoints[numberOfLookPoints - 1]
+                                                .GetCentre() - patrolPaths[previousPatrolIndex].lookPoints[numberOfLookPoints - 2]
+                                                .GetCentre(); // TODO did this late so could be completely wrong, hard to think
+
+                return startingMovementDirection;
+            }
+        }
+
+        //Vector3.forward - Vector3(0, 0, 1);
+        //Vector3.back - Vector3(0, 0, -1);
+        //Vector3.right - Vector3(1, 0, 0);
+        //Vector3.left - Vector3(-1, 0, 0);
+
+        return GetMovementDirection();;
+    }
+
     IEnumerator FollowPath()
     {
         bool followingPath = true;
 
-        while (followingPath && path.lookPoints.Count > 0)
+        while (followingPath && currentPatrol.lookPoints.Count > 0)
         {
             Cell currentCell = GetCurrentCell();
             float distanceToCurrentCellCentre = Vector3.Distance(currentCell.GetCentre(), transform.position);
@@ -93,11 +201,13 @@ public class AIAgentController : AgentController
 
             if (distanceToCurrentCellCentre < 0.05f || !movingTowards)
             {
-                for (int i = 0; i < path.lookPoints.Count; i++)
+                for (int i = 0; i < currentPatrol.lookPoints.Count; i++)
                 {
-                    if (currentCell.GetCentre() == path.lookPoints[i].GetCentre())
+                    if (currentCell.GetCentre() == currentPatrol.lookPoints[i].GetCentre()
+                        || currentPatrol.lookPoints.Contains(currentCell))
                     {
-                        path.lookPoints.RemoveAt(i);
+                        currentPatrol.lookPoints.RemoveAt(i);
+                        i--;
                     }
                     else
                     {
@@ -105,9 +215,9 @@ public class AIAgentController : AgentController
                     }
                 }
 
-                if (path.lookPoints.Count > 0)
+                if (currentPatrol.lookPoints.Count > 0)
                 {
-                    Vector3 directionChange = path.lookPoints[0].GetCentre() - currentCell.GetCentre();
+                    Vector3 directionChange = currentPatrol.lookPoints[0].GetCentre() - currentCell.GetCentre();
 
                     if (directionChange != Vector3.zero)
                     {

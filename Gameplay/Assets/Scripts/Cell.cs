@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Object = System.Object;
 
 public class Cell : PersistableObject, IHeapItem<Cell>
 {
@@ -47,7 +48,33 @@ public class Cell : PersistableObject, IHeapItem<Cell>
 
         public int X { get; set; }
         public int Y { get; set; }
-
+        
+        public override int GetHashCode()
+        {
+            return (X << 2) ^ Y;
+        }
+        
+        public override bool Equals(Object obj)
+        {
+            //Check for null and compare run-time types.
+            if ((obj == null) || ! this.GetType().Equals(obj.GetType()))
+            {
+                return false;
+            }
+            else {
+                GridPosition p = (GridPosition) obj;
+                return (X == p.X) && (Y == p.Y);
+            }
+        }
+        
+        public static bool operator ==(GridPosition pos1, GridPosition pos2)
+        {
+            return pos1.Equals(pos2);
+        }
+        public static bool operator !=(GridPosition pos1, GridPosition pos2)
+        {
+            return !pos1.Equals(pos2);
+        }
         public override string ToString() => $"({X}, {Y})";
     }
 
@@ -59,7 +86,7 @@ public class Cell : PersistableObject, IHeapItem<Cell>
 
     private bool nextCell = false;
     private bool spawn = false;
-    private bool walkable = true;
+    public bool walkable = true;
     private bool backBoundEnabled = false;
     private bool forwardBoundEnabled = false;
     private bool leftBoundEnabled = false;

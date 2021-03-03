@@ -25,7 +25,6 @@ public class Pathfinding : MonoBehaviour
         sw.Start();
         
         List<Cell> pathCells = new List<Cell>();
-        List<Vector3> pathDirections = new List<Vector3>();
         bool pathSuccess = false;
         
         Cell startCell = _gridController.GetCellFromWorldPosition(request.pathStart);
@@ -93,7 +92,7 @@ public class Pathfinding : MonoBehaviour
             pathCells = RetracePath(startCell,targetCell);
             pathSuccess = pathCells.Count > 0 ? true : false;
         }
-        callback (new PathResult (pathCells, pathSuccess, request.callback));
+        callback (new PathResult (pathCells, pathSuccess, request.patrolTargetIndex, request.callback));
     }
     
     List<Cell> RetracePath(Cell startCell, Cell endCell)
@@ -114,7 +113,7 @@ public class Pathfinding : MonoBehaviour
         
         path.Reverse();
         
-        _gridController.SetPath(path);
+        // _gridController.SetPath(path);
 
         return path;
     }

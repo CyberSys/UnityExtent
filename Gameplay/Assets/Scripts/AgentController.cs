@@ -178,7 +178,7 @@ public class AgentController : PersistableObject
     public float Speed = 1.0f;
     public float Tilt = 1.0f;
 
-    private GridController GridController;
+    public GridController GridController;
     
     // private InputController _inputController;
     
