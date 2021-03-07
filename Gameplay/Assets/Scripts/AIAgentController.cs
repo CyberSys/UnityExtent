@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = System.Random;
 
 public class AIAgentController : AgentController
 {
@@ -21,6 +22,7 @@ public class AIAgentController : AgentController
     private List<Path> patrolPaths;
     private List<Vector3> startPositions;
     private List<Vector3> startDirections;
+    private bool patrolJoined = false;
 
     // Start is called before the first frame update
     public override void Start()
@@ -35,7 +37,7 @@ public class AIAgentController : AgentController
             patrolPaths = new List<Path>();
             startPositions = new List<Vector3>();
             startDirections = new List<Vector3>();
-
+            
             for (int i = 0; i < patrolTargets.Count; i++)
             {
                 startPositions.Add(GetCurrentCell().transform.position);
@@ -60,7 +62,118 @@ public class AIAgentController : AgentController
             {
                 ChangePath();
             }
+
+            if (currentPatrol.lookPoints.Count > 0 && patrolTargets.Count > 0 && currentPatrolTarget == patrolTargets.Count - 1)
+            {
+                Cell lastCell = currentPatrol.lookPoints[currentPatrol.lookPoints.Count - 1];
+
+                Vector3 finalMovementDirection = CalculateStartingMovementDirection(0);
+
+                bool isJoinedUp = patrolJoined || GetStartingCell().IsAccessibleFromCell(lastCell, finalMovementDirection) 
+                                  || (GetStartingCell().gridPosition == lastCell.gridPosition && GetStartingMovementDirection() == finalMovementDirection);
+
+                if (!isJoinedUp)
+                {
+
+                    List<Cell> accessibleNeighbours;
+
+                    Cell pickedNeighbour = null;
+
+                    if (GetStartingMovementDirection() == Vector3.forward ||
+                        GetStartingMovementDirection() == Vector3.back)
+                    {
+                        if (GetStartingMovementDirection() == Vector3.forward)
+                        {
+                            accessibleNeighbours =
+                                GridController.GetAccessibleNeighbours(GetStartingCell(), Vector3.left);
+
+                            pickedNeighbour = CheckNeighbours(accessibleNeighbours, true);
+                            
+                            accessibleNeighbours =
+                                GridController.GetAccessibleNeighbours(pickedNeighbour, Vector3.back);
+                            
+                            pickedNeighbour = CheckNeighbours(accessibleNeighbours, false);
+                        }
+                        else
+                        {
+                            accessibleNeighbours =
+                                GridController.GetAccessibleNeighbours(GetStartingCell(), Vector3.right);
+                            
+                            pickedNeighbour = CheckNeighbours(accessibleNeighbours, true);
+                            
+                            accessibleNeighbours =
+                                GridController.GetAccessibleNeighbours(pickedNeighbour, Vector3.forward);
+                            
+                            pickedNeighbour = CheckNeighbours(accessibleNeighbours, false);
+                        }
+                    }
+                    else
+                    {
+                        if (GetStartingMovementDirection() == Vector3.left)
+                        {
+                            accessibleNeighbours =
+                                GridController.GetAccessibleNeighbours(GetStartingCell(), Vector3.back);
+                            
+                            pickedNeighbour = CheckNeighbours(accessibleNeighbours, false);
+                            
+                            accessibleNeighbours =
+                                GridController.GetAccessibleNeighbours(pickedNeighbour, Vector3.right);
+                            
+                            pickedNeighbour = CheckNeighbours(accessibleNeighbours, true);
+                        }
+                        else
+                        {
+                            accessibleNeighbours =
+                                GridController.GetAccessibleNeighbours(GetStartingCell(), Vector3.forward);
+                            
+                            pickedNeighbour = CheckNeighbours(accessibleNeighbours, false);
+                            
+                            accessibleNeighbours =
+                                GridController.GetAccessibleNeighbours(pickedNeighbour, Vector3.left);
+                            
+                            pickedNeighbour = CheckNeighbours(accessibleNeighbours, true);
+                        }
+                    }
+                    
+                    if (pickedNeighbour != null)
+                    {
+                        startPositions.Add(lastCell.transform.position);
+                        startDirections.Add(finalMovementDirection);
+
+                        patrolTargets.Add(pickedNeighbour.transform);
+                        patrolPaths.Add(new Path(new List<Cell>(), startPositions[startPositions.Count - 1], 0.0f, 0.0f));
+
+                        startPositions.Add(GetStartingCell().transform.position);
+                        startDirections.Add(GetStartingMovementDirection());
+
+                        patrolTargets.Add(GetStartingCell().transform);
+                        patrolPaths.Add(new Path(new List<Cell>(), startPositions[startPositions.Count - 1], 0.0f, 0.0f));
+
+                        patrolJoined = true;
+                    }
+                }
+            }
         }
+    }
+
+    private Cell CheckNeighbours(List<Cell> accessibleNeighbours, bool checkRowChanged)
+    {
+        Cell lastCell;
+        Vector3 finalMovementDirection;
+
+        foreach (var neighbour in accessibleNeighbours)
+        {
+            bool neighbourValidation = checkRowChanged
+                ? neighbour.gridPosition.X != GetStartingCell().gridPosition.X
+                : neighbour.gridPosition.Y != GetStartingCell().gridPosition.Y;
+            
+            if (neighbourValidation)
+            {
+                return neighbour;
+            }
+        }
+
+        return null;
     }
 
     // Update is called once per frame
@@ -122,6 +235,7 @@ public class AIAgentController : AgentController
                 {
                     startPositions[i] = patrolTargets[i - 1].transform.position;
                     startDirections[i] = CalculateStartingMovementDirection(i);
+                    
                     readyToRequest = true;
                 }
                 else if (i == 0)
@@ -137,6 +251,7 @@ public class AIAgentController : AgentController
                 if(i == currentPatrolTarget && currentCell.gridPosition == currentPatrolTargetCell.gridPosition)
                 {
                     currentPatrolTarget++;
+                    
                     if (currentPatrolTarget >= patrolTargets.Count)
                         currentPatrolTarget = 0;
                     
@@ -163,20 +278,40 @@ public class AIAgentController : AgentController
 
     private Vector3 CalculateStartingMovementDirection(int i)
     {
-        Vector3 startingMovementDirection;
+        Vector3 startingMovementDirection = Vector3.zero;
         
         int previousPatrolIndex = i - 1;
-        
-        if (i > 0)
+
+        if (previousPatrolIndex < 0)
         {
-            if (patrolPaths[previousPatrolIndex].lookPoints.Count >= 2)
+            previousPatrolIndex = patrolPaths.Count - 1;
+        }
+
+        if (patrolPaths[previousPatrolIndex].lookPoints.Count > 1)
+        {
+            int numberOfLookPoints = patrolPaths[previousPatrolIndex].lookPoints.Count;
+            startingMovementDirection = patrolPaths[previousPatrolIndex].lookPoints[numberOfLookPoints - 1]
+                                            .GetCentre() - patrolPaths[previousPatrolIndex].lookPoints[numberOfLookPoints - 2]
+                                            .GetCentre();
+        }
+        else if(patrolPaths[previousPatrolIndex].lookPoints.Count == 1)
+        {
+            int previousPreviousPatrolIndex = previousPatrolIndex - 1;
+            
+            if (previousPreviousPatrolIndex < 0)
+            {
+                previousPreviousPatrolIndex = patrolPaths.Count - 1;
+            }
+
+            if (previousPreviousPatrolIndex >= 0)
             {
                 int numberOfLookPoints = patrolPaths[previousPatrolIndex].lookPoints.Count;
-                startingMovementDirection = patrolPaths[previousPatrolIndex].lookPoints[numberOfLookPoints - 1]
-                                                .GetCentre() - patrolPaths[previousPatrolIndex].lookPoints[numberOfLookPoints - 2]
-                                                .GetCentre(); // TODO did this late so could be completely wrong, hard to think
 
-                return startingMovementDirection;
+                int numberOfPreviousLookPoints = patrolPaths[previousPreviousPatrolIndex].lookPoints.Count;
+
+                startingMovementDirection = patrolPaths[previousPatrolIndex].lookPoints[numberOfLookPoints - 1]
+                    .GetCentre() - patrolPaths[previousPreviousPatrolIndex].lookPoints[numberOfPreviousLookPoints - 1]
+                    .GetCentre();
             }
         }
 
@@ -185,7 +320,7 @@ public class AIAgentController : AgentController
         //Vector3.right - Vector3(1, 0, 0);
         //Vector3.left - Vector3(-1, 0, 0);
 
-        return GetMovementDirection();;
+        return startingMovementDirection;
     }
 
     IEnumerator FollowPath()

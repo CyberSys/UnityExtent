@@ -182,13 +182,25 @@ public class AgentController : PersistableObject
     
     // private InputController _inputController;
     
-    private Cell.GridPosition _startCell = new Cell.GridPosition(0,0);
+    private Cell.GridPosition _startingGridPosition = new Cell.GridPosition(0,0);
+    private Cell _startingCell;
+    private Vector3 _startMovementDirection = new Vector3();
 
     public Text DebugText;
 
-    public Cell.GridPosition GetStartingCell()
+    public Cell.GridPosition GetStartingGridPosition()
     {
-        return _startCell;
+        return _startingGridPosition;
+    }
+
+    public Cell GetStartingCell()
+    {
+        return _startingCell;
+    }
+
+    public Vector3 GetStartingMovementDirection()
+    {
+        return _startMovementDirection;
     }
     
     public virtual void SetStartingCell(int x, int y)
@@ -197,10 +209,20 @@ public class AgentController : PersistableObject
         {
             GridController = GameObject.FindObjectOfType<GridController>();
         }
-        transform.position = GridController.GetCell(x,y).GetCentre();
 
+        _startingCell = GridController.GetCell(x, y);
+        _startingGridPosition = _startingCell.gridPosition;
+        transform.position = _startingCell.GetCentre();
+        
         SetCurrentCell(x, y);
         _currentCell.SetSpawn(true);
+    }
+
+    public void SetStartingMovementDirection(Vector3 newDirection)
+    {
+        _startMovementDirection = newDirection;
+
+        SetMovementDirection(_startMovementDirection);
     }
 
     private Cell _currentCell;

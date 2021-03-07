@@ -284,7 +284,7 @@ public class GridController : PersistableObject
         Camera.main.GetComponent<CameraController>().PlayerTransform = player.transform;
 
         AgentController aiAgent = Instantiate(ObjectFactory.Get(4) as AIAgentController, new Vector3(0.5f, 0.0f, 6.5f), Quaternion.identity).GetComponent<AgentController>();
-        aiAgent.SetMovementDirection(Vector3.back);
+        aiAgent.SetStartingMovementDirection(Vector3.back);
         aiAgent.SetStartingCell(0,8);
         
         AIAgentController aiAgentController = (AIAgentController)aiAgent;
@@ -298,10 +298,11 @@ public class GridController : PersistableObject
             // aiAgentController.patrolTargets.Add(_grid[0][8].transform);
             
             aiAgentController.patrolTargets.Add(_grid[0][0].transform);
-            aiAgentController.patrolTargets.Add(_grid[2][0].transform);
-            aiAgentController.patrolTargets.Add(_grid[1][0].transform);
-            aiAgentController.patrolTargets.Add(_grid[3][8].transform);
-            aiAgentController.patrolTargets.Add(_grid[0][5].transform);
+            // aiAgentController.patrolTargets.Add(_grid[2][0].transform);
+            // aiAgentController.patrolTargets.Add(_grid[1][0].transform);
+            // aiAgentController.patrolTargets.Add(_grid[3][8].transform);
+            // aiAgentController.patrolTargets.Add(_grid[0][5].transform);
+            // aiAgentController.patrolTargets.Add(_grid[0][8].transform);
             
             aiAgentController.StartPatrol();
         }
