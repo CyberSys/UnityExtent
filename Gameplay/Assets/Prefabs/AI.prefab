@@ -10096,6 +10096,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Speed: 2
   Tilt: 0
+  GridController: {fileID: 0}
   DebugText: {fileID: 0}
   startPosition: {fileID: 0}
   currentPatrolTarget: 0
@@ -10114,7 +10115,7 @@ LineRenderer:
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
+  m_DynamicOccludee: 0
   m_MotionVectors: 0
   m_LightProbeUsage: 0
   m_ReflectionProbeUsage: 0
@@ -10155,7 +10156,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.052028656
+        value: 0.029045586
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -10194,7 +10195,7 @@ LineRenderer:
       m_Mode: 0
       m_NumColorKeys: 2
       m_NumAlphaKeys: 2
-    numCornerVertices: 0
+    numCornerVertices: 5
     numCapVertices: 0
     alignment: 0
     textureMode: 0

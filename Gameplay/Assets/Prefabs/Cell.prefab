@@ -750,10 +750,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   agentsInCell: []
+  walkable: 0
   movementPenalty: 0
   gCost: 0
   hCost: 0
-  movementDirection: {x: 0, y: 0, z: 0}
   parent: {fileID: 0}
 --- !u!65 &5859488841829449483
 BoxCollider:

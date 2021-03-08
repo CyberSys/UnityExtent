@@ -239,7 +239,12 @@ public class Cell : PersistableObject, IHeapItem<Cell>
 
         return true;
     }
-    
+
+    public void Update()
+    {
+        SetWalkable(walkable);
+    }
+
     /////////////////////// persistable
     ///
     
