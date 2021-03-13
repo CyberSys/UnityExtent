@@ -346,7 +346,7 @@ public class AIAgentController : AgentController
                     {
                         currentPatrol.pathCells.RemoveAt(i);
                         i--;
-                        Debug.Log(patrolPaths[currentPatrolTarget].pathCells.Count);
+                        // Debug.Log(patrolPaths[currentPatrolTarget].pathCells.Count);
                     }
                     else
                     {

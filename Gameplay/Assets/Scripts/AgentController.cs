@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -187,6 +187,11 @@ public class AgentController : PersistableObject
     private Vector3 _startMovementDirection = new Vector3();
 
     public Text DebugText;
+
+    public void Awake()
+    {
+        GridController = GameObject.FindObjectOfType<GridController>();
+    }
 
     public Cell.GridPosition GetStartingGridPosition()
     {
@@ -494,63 +499,36 @@ public class AgentController : PersistableObject
     }
     public virtual void FixedUpdate ()
     {
-        SetCurrentCell(GridController.GetCellFromWorldPosition(transform.position));
-        // if (this.tag == "Player" && _currentCell != null)
-        // {
-        //     _inputController.Update();
-        // }
-
-        GetComponent<Rigidbody>().velocity = MovementDirection * Speed;
-
-        GetComponent<Rigidbody>().position = new Vector3
-        (
-            Mathf.Clamp(GetComponent<Rigidbody>().position.x, BoxCollider.bounds.min.x, BoxCollider.bounds.max.x),
-            0.075f,
-            Mathf.Clamp(GetComponent<Rigidbody>().position.z, BoxCollider.bounds.min.z, BoxCollider.bounds.max.z)
-        );
-
-        //GetComponent<Rigidbody>().rotation = Quaternion.Euler (0.0f, 0.0f, GetComponent<Rigidbody>().velocity.x * -Tilt);
-
-        if (MovementDirection == Vector3.right)
-            transform.rotation = Quaternion.Euler(0, 90, 0);
-        if (MovementDirection == Vector3.left)
-            transform.rotation = Quaternion.Euler(0, -90, 0);
-        if (MovementDirection == Vector3.forward)
-            transform.rotation = Quaternion.Euler(0, 0, 0);
-        if (MovementDirection == Vector3.back)
-            transform.rotation = Quaternion.Euler(0, 180, 0);
-
-        //float distanceToCurrentCellCentre = Vector3.Distance(_currentCell.GetCentre(), transform.position);
-        //float distanceToNextCellCentre = Vector3.Distance(_nextCell.GetCentre(), transform.position);
-        
-        AdjustPosition();
-
-        /*if (distanceToNextCellCentre < distanceToCurrentCellCentre)
+        if (GridController != null)
         {
-            // leave previous current and next
-            // this should be shifted into the update where there is a check to see
-            // if the player is more than half way into the cell
-            // and if the player is traveling in it's direction
-            if (_currentCell != null)
+            SetCurrentCell(GridController.GetCellFromWorldPosition(transform.position));
+
+            GetComponent<Rigidbody>().velocity = MovementDirection * Speed;
+
+            GetComponent<Rigidbody>().position = new Vector3
+            (
+                Mathf.Clamp(GetComponent<Rigidbody>().position.x, BoxCollider.bounds.min.x, BoxCollider.bounds.max.x),
+                0.075f,
+                Mathf.Clamp(GetComponent<Rigidbody>().position.z, BoxCollider.bounds.min.z, BoxCollider.bounds.max.z)
+            );
+
+            //GetComponent<Rigidbody>().rotation = Quaternion.Euler (0.0f, 0.0f, GetComponent<Rigidbody>().velocity.x * -Tilt);
+
+            if (MovementDirection == Vector3.right)
+                transform.rotation = Quaternion.Euler(0, 90, 0);
+            if (MovementDirection == Vector3.left)
+                transform.rotation = Quaternion.Euler(0, -90, 0);
+            if (MovementDirection == Vector3.forward)
+                transform.rotation = Quaternion.Euler(0, 0, 0);
+            if (MovementDirection == Vector3.back)
+                transform.rotation = Quaternion.Euler(0, 180, 0);
+
+            AdjustPosition();
+
+            if (DebugText != null)
             {
-                if (_currentCell.IsSpawn())
-                {
-                    _currentCell.SetSpawn(false);
-                }
-
-                SetPreviousCell(_currentCell);
+                DebugText.text = _currentCell.gridPosition.ToString();
             }
-
-            SetCurrentCell(_nextCell);
-        }*/
-
-        if (DebugText != null)
-        {
-            // DebugText.text = GetComponent<Rigidbody>().position.ToString();
-            // DebugText.text += "\n " + _currentCell.GetCentre();
-
-            // DebugText.text = "( " + _currentCell.GetCentre().x + ", " + _currentCell.GetCentre().y + ", " + _currentCell.GetCentre().z + " )";
-            DebugText.text = _currentCell.gridPosition.ToString();
         }
     }
 }

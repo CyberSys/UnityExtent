@@ -278,7 +278,7 @@ public class GridController : PersistableObject
         //Instantiate(aiPrefab, new Vector3(1.5f, 0.0f, 0.5f), Quaternion.identity);
 
         player = Instantiate(ObjectFactory.Get(3) as PlayerAgentController);
-        // player.SetMovementDirection(Vector3.forward);
+        player.SetMovementDirection(Vector3.forward);
         player.SetStartingCell(2,2);
         
         Camera.main.GetComponent<CameraController>().PlayerTransform = player.transform;
@@ -311,20 +311,18 @@ public class GridController : PersistableObject
     // Update is called once per frame
     void FixedUpdate()
     {
-        foreach (var cell in playerAccessibleCells)
-        {
-            cell.SetAccessible(false);
-        }
-        
-        playerAccessibleCells = GetAccessibleNeighbours(player.GetCurrentCell(), player.GetMovementDirection());
-
-        foreach (var cell in playerAccessibleCells)
-        {
-            cell.SetAccessible(true);
-        }
-        bool test1 = _grid[0][1].IsAccessibleFromCell(_grid[0][0], Vector3.forward);
-        bool test2 = _grid[2][0].IsAccessibleFromCell(_grid[3][0], Vector3.forward);
-        int i = 0;
+        // uncomment to show player accessible cells
+        // foreach (var cell in playerAccessibleCells)
+        // {
+        //     cell.SetAccessible(false);
+        // }
+        //
+        // playerAccessibleCells = GetAccessibleNeighbours(player.GetCurrentCell(), player.GetMovementDirection());
+        //
+        // foreach (var cell in playerAccessibleCells)
+        // {
+        //     cell.SetAccessible(true);
+        // }
     }
 
     private void OnDestroy()
