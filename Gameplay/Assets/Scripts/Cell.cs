@@ -203,6 +203,19 @@ public class Cell : PersistableObject, IHeapItem<Cell>
         return walkable;
     }
 
+    public bool IsOccupied(int agentID)
+    {
+        bool occupied = false;
+
+        for (int i = 0; i < agentsInCell.Count; i++)
+        {
+            if (agentsInCell[i].ID != agentID)
+                occupied = true;
+        }
+
+        return occupied;
+    }
+
     public void SetAccessible(bool canAccess)
     {
         accessible = canAccess;

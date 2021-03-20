@@ -221,7 +221,7 @@ public class AIAgentController : AgentController
             yield return new WaitForSeconds (.3f);
         }
 
-        PathRequestManager.RequestPath (new PathRequest(0,startDirections[0], startPositions[0], patrolTargets[0].position, OnPathFound));
+        PathRequestManager.RequestPath (new PathRequest(base.ID,0,startDirections[0], startPositions[0], patrolTargets[0].position, OnPathFound));
 
         float sqrMoveThreshold = pathUpdateMoveThreshold * pathUpdateMoveThreshold;
         Vector3 targetPosOld = patrolTargets[currentPatrolTarget].position;
@@ -263,7 +263,7 @@ public class AIAgentController : AgentController
                 
                 if (readyToRequest && (patrolTargets[i].position - targetPosOld).sqrMagnitude > sqrMoveThreshold)
                 {
-                    PathRequestManager.RequestPath(new PathRequest(i, startDirections[i], startPositions[i],
+                    PathRequestManager.RequestPath(new PathRequest(base.ID,i, startDirections[i], startPositions[i],
                         patrolTargets[i].position, OnPathFound));
                     targetPosOld = patrolTargets[i].position;
                 }

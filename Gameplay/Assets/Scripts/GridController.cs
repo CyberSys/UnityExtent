@@ -10,6 +10,8 @@ using UnityEngine.Serialization;
 public class GridController : PersistableObject
 {
     private PlayerAgentController player;
+
+    private int AgentCount = 0;
     
     public int rowNumber = 10;
     public int columnNumber = 10;
@@ -276,34 +278,81 @@ public class GridController : PersistableObject
     void InitiliaseAgents()
     {
         //Instantiate(aiPrefab, new Vector3(1.5f, 0.0f, 0.5f), Quaternion.identity);
+        
+        CreatePlayerAgent(new Vector3(0.5f, 0.0f, 5.5f), Vector3.forward);
 
-        player = Instantiate(ObjectFactory.Get(3) as PlayerAgentController);
-        player.SetMovementDirection(Vector3.forward);
-        player.SetStartingCell(2,2);
+        // player = Instantiate(ObjectFactory.Get(3) as PlayerAgentController);
+        // player.SetMovementDirection(Vector3.forward);
+        // player.SetStartingCell(0,6);
+        //
+        // player.SetMovementDirection(Vector3.forward);
+        // player.SetStartingCell(0,6);
         
         Camera.main.GetComponent<CameraController>().PlayerTransform = player.transform;
 
-        AgentController aiAgent = Instantiate(ObjectFactory.Get(4) as AIAgentController, new Vector3(0.5f, 0.0f, 6.5f), Quaternion.identity).GetComponent<AgentController>();
-        aiAgent.SetStartingMovementDirection(Vector3.back);
-        aiAgent.SetStartingCell(0,8);
+        AgentController aiAgent;
+        AIAgentController aiAgentController;
         
-        AIAgentController aiAgentController = (AIAgentController)aiAgent;
+        
+        CreateAIAgent(new Vector3(0.5f,0.0f, 8.5f), Vector3.back, CreatePatrol(new List<Vector3> {new Vector3(0.5f,0f,0.5f),new Vector3(2.5f,0f,3.5f)}));
+
+        // aiAgent = Instantiate(ObjectFactory.Get(4) as AIAgentController, new Vector3(5.5f, 0.0f, 6.5f), Quaternion.identity).GetComponent<AgentController>();
+        // aiAgent.SetStartingMovementDirection(Vector3.forward);
+        // aiAgent.SetStartingCell(5,6);
+        //
+        // aiAgentController = (AIAgentController)aiAgent;
+        // if (aiAgentController)
+        // {
+        //     aiAgentController.patrolTargets.Add(_grid[8][0].transform);
+        //     
+        //     aiAgentController.StartPatrol();
+        // }
+    }
+
+    private List<GameObject> CreatePatrol(List<Vector3> positions)
+    {
+        List<GameObject> patrol = new List<GameObject>();
+        for (int i = 0; i < positions.Count; i++)
+        {
+            GameObject pathPosition = new GameObject();
+            pathPosition.transform.position = positions[i];
+            patrol.Add(pathPosition);
+        }
+
+        return patrol;
+    }
+
+    private void CreatePlayerAgent(Vector3 position, Vector3 movementDirection)
+    {
+        Cell startCell = GetCellFromWorldPosition(position);
+        
+        player = Instantiate(ObjectFactory.Get(3) as PlayerAgentController);
+        player.ID = AgentCount++;
+        player.SetStartingMovementDirection(movementDirection);
+        player.SetStartingCell(startCell.gridPosition.X, startCell.gridPosition.Y);
+        
+        Camera.main.GetComponent<CameraController>().PlayerTransform = player.transform;
+    }
+
+    private void CreateAIAgent(Vector3 position, Vector3 movementDirection, List<GameObject> patrol)
+    {
+        Cell startCell = GetCellFromWorldPosition(position);
+        
+        AgentController aiAgent =
+            Instantiate(ObjectFactory.Get(4) as AIAgentController, position, Quaternion.identity)
+                .GetComponent<AgentController>();
+        aiAgent.ID = AgentCount++;
+        aiAgent.SetStartingMovementDirection(movementDirection);
+        aiAgent.SetStartingCell(startCell.gridPosition.X, startCell.gridPosition.Y);
+
+        AIAgentController aiAgentController = (AIAgentController) aiAgent;
         if (aiAgentController)
         {
-            // original
-            // aiAgentController.patrolTargets.Add(_grid[0][0].transform);
-            // aiAgentController.patrolTargets.Add(_grid[5][0].transform);
-            // aiAgentController.patrolTargets.Add(_grid[5][4].transform);
-            // aiAgentController.patrolTargets.Add(_grid[3][8].transform);
-            // aiAgentController.patrolTargets.Add(_grid[0][8].transform);
-            
-            aiAgentController.patrolTargets.Add(_grid[0][0].transform);
-            // aiAgentController.patrolTargets.Add(_grid[2][0].transform);
-            // aiAgentController.patrolTargets.Add(_grid[1][0].transform);
-            // aiAgentController.patrolTargets.Add(_grid[3][8].transform);
-            // aiAgentController.patrolTargets.Add(_grid[0][5].transform);
-            // aiAgentController.patrolTargets.Add(_grid[0][8].transform);
-            
+            foreach (var gameObject in patrol)
+            {
+                aiAgentController.patrolTargets.Add(gameObject.transform);
+            }
+
             aiAgentController.StartPatrol();
         }
     }

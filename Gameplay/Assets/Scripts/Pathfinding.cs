@@ -67,7 +67,7 @@ public class Pathfinding : MonoBehaviour
                 foreach (var neighbour in neighbours)
                 {
                     neighbour.IsAccessibleFromCell(currentCell, currentMovementDirection);
-                    if (!neighbour.IsWalkable() || closedSet.Contains(neighbour))
+                    if (!neighbour.IsWalkable() || neighbour.IsOccupied(request.agentID) || closedSet.Contains(neighbour))
                     {
                         continue;
                     }

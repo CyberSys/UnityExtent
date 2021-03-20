@@ -188,6 +188,14 @@ public class AgentController : PersistableObject
 
     public Text DebugText;
 
+    private int id;
+
+    public int ID
+    {
+        get => id;
+        set => id = value;
+    }
+
     public void Awake()
     {
         GridController = GameObject.FindObjectOfType<GridController>();
@@ -283,6 +291,8 @@ public class AgentController : PersistableObject
 
                 SetPreviousCell(_currentCell);
             }
+            
+            _currentCell.agentsInCell.Remove(this);
             
             _currentCell = currentCell;
             _currentCell.agentsInCell.Add(this);

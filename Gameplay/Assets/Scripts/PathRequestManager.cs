@@ -59,14 +59,16 @@ public struct PathResult {
 
 public struct PathRequest
 {
+	public int agentID;
 	public int patrolTargetIndex;
 	public Vector3 currentMovementDirection;
 	public Vector3 pathStart;
 	public Vector3 pathEnd;
 	public Action<List<Cell>, bool, int> callback;
 
-	public PathRequest(int _patrolTargetIndex, Vector3 _currentMovementDirection, Vector3 _start, Vector3 _end, Action<List<Cell>, bool, int> _callback)
+	public PathRequest(int _agentID, int _patrolTargetIndex, Vector3 _currentMovementDirection, Vector3 _start, Vector3 _end, Action<List<Cell>, bool, int> _callback)
 	{
+		agentID = _agentID;
 		patrolTargetIndex = _patrolTargetIndex;
 		currentMovementDirection = _currentMovementDirection;
 		pathStart = _start;
