@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Serialization;
+using Random = UnityEngine.Random;
 
 public class GridController : PersistableObject
 {
@@ -295,6 +296,8 @@ public class GridController : PersistableObject
         
         
         CreateAIAgent(new Vector3(0.5f,0.0f, 8.5f), Vector3.back, CreatePatrol(new List<Vector3> {new Vector3(0.5f,0f,0.5f),new Vector3(2.5f,0f,3.5f)}));
+        
+        CreateAIAgent(new Vector3(2.5f,0.0f, 2.5f), Vector3.forward, CreatePatrol(new List<Vector3> {new Vector3(5.5f,0f,0.5f),new Vector3(2.5f,0f,3.5f)}));
 
         // aiAgent = Instantiate(ObjectFactory.Get(4) as AIAgentController, new Vector3(5.5f, 0.0f, 6.5f), Quaternion.identity).GetComponent<AgentController>();
         // aiAgent.SetStartingMovementDirection(Vector3.forward);
@@ -345,12 +348,24 @@ public class GridController : PersistableObject
         aiAgent.SetStartingMovementDirection(movementDirection);
         aiAgent.SetStartingCell(startCell.gridPosition.X, startCell.gridPosition.Y);
 
+        LineRenderer lr = aiAgent.GetComponent<LineRenderer>();
+        if (lr)
+        {
+            lr.material.SetColor("_EmissionColor", Random.ColorHSV(0f, 1f, 1f, 1f, 0.5f, 1f));
+        }
+
         AIAgentController aiAgentController = (AIAgentController) aiAgent;
         if (aiAgentController)
         {
+            GameObject patrolList = new GameObject();
+            patrolList.name = "Agent: " + aiAgent.ID + " Patrol";
+            patrolList.transform.position = Vector3.zero;
+            
             foreach (var gameObject in patrol)
             {
                 aiAgentController.patrolTargets.Add(gameObject.transform);
+                gameObject.name = gameObject.transform.position.ToString();
+                gameObject.transform.SetParent(patrolList.transform);
             }
 
             aiAgentController.StartPatrol();

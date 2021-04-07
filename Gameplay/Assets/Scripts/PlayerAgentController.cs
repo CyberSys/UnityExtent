@@ -1,9 +1,31 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Sirenix.OdinInspector;
 
 public class PlayerAgentController : AgentController
 {
+    [BoxGroup("Combat Info")] [ShowInInspector]
+    public float WeaponRange = 5.0f;
+    [ShowInInspector]
+    public static List<AIAgentController> enemiesInRange = new List<AIAgentController>();
+    
+    
+    void UpdateEnemiesInRange()
+    {
+        enemiesInRange.Clear();
+        Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, WeaponRange);
+        foreach (var hitCollider in hitColliders)
+        {
+            AIAgentController enemyInRange = hitCollider.gameObject.GetComponent<AIAgentController>();
+            if (enemyInRange != null && enemyInRange.gameObject.layer == 9) // AI
+            {
+                enemiesInRange.Add(enemyInRange);
+            }
+        }
+    }
+    
     private InputController _inputController;
     
     // Start is called before the first frame update
@@ -33,6 +55,33 @@ public class PlayerAgentController : AgentController
             }
         }
         base.FixedUpdate();
+        
+        // Combat
+
+        UpdateEnemiesInRange();
+        
+        Transform combat_debug_object;
+        combat_debug_object = this.transform.GetChild(1);
+
+        if (combat_debug_object != null)
+        {
+            LineRenderer line_renderer = combat_debug_object.GetComponent<LineRenderer>();
+
+            if (line_renderer != null)
+            {
+                var points = new Vector3[enemiesInRange.Count * 2];
+                
+                for (int i = 0; i < enemiesInRange.Count; i++)
+                {
+                    int pointOffset = i * 2;
+                    points[pointOffset] = transform.position;
+                    points[pointOffset + 1] = enemiesInRange[i].transform.position;
+                }
+                
+                line_renderer.SetPositions(points);
+                line_renderer.positionCount = enemiesInRange.Count * 2;
+            }
+        }
     }
     
     /////////////////////// persistable
