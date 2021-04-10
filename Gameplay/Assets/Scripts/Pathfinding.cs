@@ -112,6 +112,11 @@ public class Pathfinding : MonoBehaviour
         //path = SimplifyPath(path);
         
         path.Reverse();
+
+        for(int i = 0; i < path.Count; i++)
+        {
+            path[i].SetPathIndex(i);
+        }
         
         // _gridController.SetPath(path);
 

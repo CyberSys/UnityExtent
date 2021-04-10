@@ -10094,7 +10094,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e688c995fef5cad4aa1ad8f8a3334c66, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Speed: 1
+  Speed: 0
   Tilt: 0
   GridController: {fileID: 0}
   DebugText: {fileID: 0}

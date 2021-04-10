@@ -280,7 +280,7 @@ public class GridController : PersistableObject
     {
         //Instantiate(aiPrefab, new Vector3(1.5f, 0.0f, 0.5f), Quaternion.identity);
         
-        CreatePlayerAgent(new Vector3(0.5f, 0.0f, 5.5f), Vector3.forward);
+        CreatePlayerAgent(new Vector3(3.5f, 0.0f, 5.5f), Vector3.forward);
 
         // player = Instantiate(ObjectFactory.Get(3) as PlayerAgentController);
         // player.SetMovementDirection(Vector3.forward);
@@ -297,7 +297,7 @@ public class GridController : PersistableObject
         
         CreateAIAgent(new Vector3(0.5f,0.0f, 8.5f), Vector3.back, CreatePatrol(new List<Vector3> {new Vector3(0.5f,0f,0.5f),new Vector3(2.5f,0f,3.5f)}));
         
-        CreateAIAgent(new Vector3(2.5f,0.0f, 2.5f), Vector3.forward, CreatePatrol(new List<Vector3> {new Vector3(5.5f,0f,0.5f),new Vector3(2.5f,0f,3.5f)}));
+        //CreateAIAgent(new Vector3(2.5f,0.0f, 2.5f), Vector3.forward, CreatePatrol(new List<Vector3> {new Vector3(5.5f,0f,0.5f),new Vector3(2.5f,0f,3.5f)}));
 
         // aiAgent = Instantiate(ObjectFactory.Get(4) as AIAgentController, new Vector3(5.5f, 0.0f, 6.5f), Quaternion.identity).GetComponent<AgentController>();
         // aiAgent.SetStartingMovementDirection(Vector3.forward);

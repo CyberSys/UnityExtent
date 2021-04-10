@@ -9684,7 +9684,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0598e422f271f8643b7794cf88d2b575, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Speed: 1
+  Speed: 0
   Tilt: 0
   GridController: {fileID: 0}
   DebugText: {fileID: 0}

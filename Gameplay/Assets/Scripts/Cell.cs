@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using Object = System.Object;
 
 public class Cell : PersistableObject, IHeapItem<Cell>
@@ -220,6 +221,21 @@ public class Cell : PersistableObject, IHeapItem<Cell>
     {
         accessible = canAccess;
         GETChildGameObjectWithName(gameObject, "Centre").GetComponent<MeshRenderer>().enabled = accessible;
+    }
+
+    public void SetPathIndex(int index)
+    {
+        GameObject canvas = GETChildGameObjectWithName(gameObject, "AI Canvas");
+        if (canvas != null)
+        {
+            canvas.GetComponent<Canvas>().enabled = true;
+            GameObject pathText = GETChildGameObjectWithName(canvas, "Path Index");
+            Text text = pathText.GetComponent<Text>();
+            if (text != null)
+            {
+                text.text = index.ToString();
+            }
+        }
     }
 
     public bool IsAccessibleFromCell(Cell currentCell, Vector3 currentMovementDirection)
