@@ -7,6 +7,19 @@ using Object = System.Object;
 
 public class Cell : PersistableObject, IHeapItem<Cell>
 {
+    // Copy constructor.
+    public Cell(Cell previousCell)
+    {
+        this.transform.position = previousCell.transform.position;
+        this.transform.parent = previousCell.transform.parent;
+        SetNextCellIndicator(previousCell.IsNextCell());
+        SetSpawn(previousCell.IsSpawn());
+        SetCentre(previousCell.GetCentre());
+        SetWalkable(previousCell.IsWalkable());
+        name = previousCell.name;
+        
+        // TODO need to copy bounds as well?
+    }
     public int HeapIndex
     {
         get

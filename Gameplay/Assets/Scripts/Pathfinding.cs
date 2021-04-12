@@ -12,37 +12,74 @@ public class Pathfinding : MonoBehaviour
     {
         _gridController = gameObject.GetComponent<GridController>();
     }
-
-    // Update is called once per frame
-    // void Update()
-    // {
-    //     FindPath(seeker.position, target.position);
-    // }
-
+    
     public void FindPath(PathRequest request, Action<PathResult> callback)
+    {
+        List<Cell> pathCells = new List<Cell>();
+        bool pathSuccess = false;
+        if(request.pathStart == request.viaLocation)
+            pathCells = PathSearch(request.agentID, request.currentMovementDirection, request.pathStart, request.pathEnd, out pathSuccess);
+        else
+        {
+            List<Cell> initialPathCells = new List<Cell>();
+            
+            initialPathCells = PathSearch(request.agentID, request.currentMovementDirection, request.pathStart, request.viaLocation,  out pathSuccess);
+            
+            Vector3 startingMovementDirection;
+
+            if (initialPathCells.Count < 2)
+            {
+                Cell startCell = _gridController.GetCellFromWorldPosition(request.pathStart);
+                
+                startingMovementDirection = initialPathCells[initialPathCells.Count - 1]
+                    .GetCentre() - startCell.GetCentre();
+            }
+            else
+            {
+                startingMovementDirection = initialPathCells[initialPathCells.Count - 1]
+                    .GetCentre() - initialPathCells[initialPathCells.Count - 2]
+                    .GetCentre();
+            }
+
+            //Vector3.forward - Vector3(0, 0, 1);
+            //Vector3.back - Vector3(0, 0, -1);
+            //Vector3.right - Vector3(1, 0, 0);
+            //Vector3.left - Vector3(-1, 0, 0);
+            
+            List<Cell> secondPathCells = new List<Cell>();
+            
+            secondPathCells = PathSearch(request.agentID, startingMovementDirection, request.viaLocation, request.pathEnd,  out pathSuccess);
+
+            //secondPathCells.RemoveAt(0); // to prevent duplicate cell
+            
+            pathCells.AddRange(initialPathCells);
+            pathCells.AddRange(secondPathCells);
+        }
+        callback (new PathResult (pathCells, pathSuccess, request.patrolTargetIndex, request.callback));
+    }
+
+    private List<Cell> PathSearch(int agentID, Vector3 currentMovementDirection, Vector3 pathStart, Vector3 pathEnd, out bool pathSuccess)
     {
         Stopwatch sw = new Stopwatch();
         sw.Start();
-        
+
         List<Cell> pathCells = new List<Cell>();
-        bool pathSuccess = false;
-        
-        Cell startCell = _gridController.GetCellFromWorldPosition(request.pathStart);
+        pathSuccess = false;
+
+        Cell startCell = _gridController.GetCellFromWorldPosition(pathStart);
         startCell.parent = startCell;
-        Cell targetCell = _gridController.GetCellFromWorldPosition(request.pathEnd);
-        
-        if(startCell.IsWalkable() && targetCell.IsWalkable())
+        Cell targetCell = _gridController.GetCellFromWorldPosition(pathEnd);
+
+        if (startCell.IsWalkable() && targetCell.IsWalkable())
         {
             Heap<Cell> openSet = new Heap<Cell>(_gridController.MaxSize);
             HashSet<Cell> closedSet = new HashSet<Cell>();
             openSet.Add(startCell);
-            
-            Vector3 currentMovementDirection = request.currentMovementDirection;
 
             while (openSet.Count > 0)
             {
                 Cell currentCell = openSet.RemoveFirst();
-                
+
                 closedSet.Add(currentCell);
 
                 if (currentCell == targetCell)
@@ -55,7 +92,9 @@ public class Pathfinding : MonoBehaviour
 
                 List<Cell> neighbours;
 
-                if (currentCell == startCell)  // because of the way the movement works it is enough to make sure the first cell chosen is in a valid direction, because after that the path will work itself out 
+                if (
+                    currentCell ==
+                    startCell) // because of the way the movement works it is enough to make sure the first cell chosen is in a valid direction, because after that the path will work itself out 
                 {
                     neighbours = _gridController.GetAccessibleNeighbours(currentCell, currentMovementDirection);
                 }
@@ -67,12 +106,13 @@ public class Pathfinding : MonoBehaviour
                 foreach (var neighbour in neighbours)
                 {
                     neighbour.IsAccessibleFromCell(currentCell, currentMovementDirection);
-                    if (!neighbour.IsWalkable() || neighbour.IsOccupied(request.agentID) || closedSet.Contains(neighbour))
+                    if (!neighbour.IsWalkable() || neighbour.IsOccupied(agentID) || closedSet.Contains(neighbour))
                     {
                         continue;
                     }
-                    
-                    int newMovementCostToNeighbour = currentCell.gCost + GetDistance(currentCell, neighbour) + neighbour.movementPenalty;
+
+                    int newMovementCostToNeighbour =
+                        currentCell.gCost + GetDistance(currentCell, neighbour) + neighbour.movementPenalty;
 
                     if (newMovementCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
                     {
@@ -88,13 +128,87 @@ public class Pathfinding : MonoBehaviour
                 }
             }
         }
-        if (pathSuccess == true) {
-            pathCells = RetracePath(startCell,targetCell);
-            pathSuccess = pathCells.Count > 0 ? true : false;
+
+        if (pathSuccess == true)
+        {
+            pathCells = RetracePath(startCell, targetCell);
+
+            Vector3 previousPosition = pathStart;
+            Vector3 previousMovementDirection = currentMovementDirection;
+            
+            bool validMovement = false;
+
+            for (int i = 0; i < pathCells.Count; i++)
+            {
+                Vector3 directionChange = pathCells[i].GetCentre() - _gridController.GetCellFromWorldPosition(previousPosition).GetCentre();
+
+                if (directionChange == previousMovementDirection)
+                {
+                    validMovement = true;
+                }
+                else if (directionChange == Vector3.zero)
+                {
+                    validMovement = false;
+                }
+                else if (directionChange == Vector3.right)
+                {
+                    if (previousMovementDirection == Vector3.forward)
+                        validMovement = true;
+                    else if (previousMovementDirection == Vector3.back)
+                        validMovement = true;
+                    else
+                    {
+                        validMovement = false;
+                        // throw new InvalidOperationException("Illegal direction change.");
+                    }
+                }
+                else if (directionChange == Vector3.left)
+                {
+                    if (previousMovementDirection == Vector3.forward)
+                        validMovement = true;
+                    else if (previousMovementDirection == Vector3.back)
+                        validMovement = true;
+                    else
+                    {
+                        validMovement = false;
+                        // throw new InvalidOperationException("Illegal direction change.");
+                    }
+                }
+                else if (directionChange == Vector3.forward)
+                {
+                    if (previousMovementDirection == Vector3.right)
+                        validMovement = true;
+                    else if (previousMovementDirection == Vector3.left)
+                        validMovement = true;
+                    else
+                    {
+                        validMovement = false;
+                        // throw new InvalidOperationException("Illegal direction change.");
+                    }
+                }
+                else if (directionChange == Vector3.back)
+                {
+                    if (previousMovementDirection == Vector3.right)
+                        validMovement = true;
+                    else if (previousMovementDirection == Vector3.left)
+                        validMovement = true;
+                    else
+                    {
+                        validMovement = false;
+                        // throw new InvalidOperationException("Illegal direction change.");
+                    }
+                }
+
+                previousPosition = pathCells[i].GetCentre();
+                previousMovementDirection = directionChange;
+            }
+
+            pathSuccess = pathCells.Count > 0 && validMovement ? true : false;
         }
-        callback (new PathResult (pathCells, pathSuccess, request.patrolTargetIndex, request.callback));
+
+        return pathCells;
     }
-    
+
     List<Cell> RetracePath(Cell startCell, Cell endCell)
     {
         List<Cell> path = new List<Cell>();

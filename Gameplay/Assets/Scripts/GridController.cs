@@ -278,38 +278,13 @@ public class GridController : PersistableObject
 
     void InitiliaseAgents()
     {
-        //Instantiate(aiPrefab, new Vector3(1.5f, 0.0f, 0.5f), Quaternion.identity);
-        
         CreatePlayerAgent(new Vector3(3.5f, 0.0f, 5.5f), Vector3.forward);
-
-        // player = Instantiate(ObjectFactory.Get(3) as PlayerAgentController);
-        // player.SetMovementDirection(Vector3.forward);
-        // player.SetStartingCell(0,6);
-        //
-        // player.SetMovementDirection(Vector3.forward);
-        // player.SetStartingCell(0,6);
         
         Camera.main.GetComponent<CameraController>().PlayerTransform = player.transform;
 
-        AgentController aiAgent;
-        AIAgentController aiAgentController;
-        
-        
         CreateAIAgent(new Vector3(0.5f,0.0f, 8.5f), Vector3.back, CreatePatrol(new List<Vector3> {new Vector3(0.5f,0f,0.5f),new Vector3(2.5f,0f,3.5f)}));
         
-        //CreateAIAgent(new Vector3(2.5f,0.0f, 2.5f), Vector3.forward, CreatePatrol(new List<Vector3> {new Vector3(5.5f,0f,0.5f),new Vector3(2.5f,0f,3.5f)}));
-
-        // aiAgent = Instantiate(ObjectFactory.Get(4) as AIAgentController, new Vector3(5.5f, 0.0f, 6.5f), Quaternion.identity).GetComponent<AgentController>();
-        // aiAgent.SetStartingMovementDirection(Vector3.forward);
-        // aiAgent.SetStartingCell(5,6);
-        //
-        // aiAgentController = (AIAgentController)aiAgent;
-        // if (aiAgentController)
-        // {
-        //     aiAgentController.patrolTargets.Add(_grid[8][0].transform);
-        //     
-        //     aiAgentController.StartPatrol();
-        // }
+        CreateAIAgent(new Vector3(2.5f,0.0f, 2.5f), Vector3.forward, CreatePatrol(new List<Vector3> {new Vector3(5.5f,0f,0.5f),new Vector3(2.5f,0f,3.5f)}));
     }
 
     private List<GameObject> CreatePatrol(List<Vector3> positions)
@@ -318,7 +293,7 @@ public class GridController : PersistableObject
         for (int i = 0; i < positions.Count; i++)
         {
             GameObject pathPosition = new GameObject();
-            pathPosition.transform.position = positions[i];
+            pathPosition.transform.position = GetCellFromWorldPosition(positions[i]).GetCentre();
             patrol.Add(pathPosition);
         }
 
@@ -360,15 +335,18 @@ public class GridController : PersistableObject
             GameObject patrolList = new GameObject();
             patrolList.name = "Agent: " + aiAgent.ID + " Patrol";
             patrolList.transform.position = Vector3.zero;
+
+            List<Transform> targetList = new List<Transform>();
             
             foreach (var gameObject in patrol)
             {
-                aiAgentController.patrolTargets.Add(gameObject.transform);
+                targetList.Add(gameObject.transform);
                 gameObject.name = gameObject.transform.position.ToString();
                 gameObject.transform.SetParent(patrolList.transform);
             }
 
-            aiAgentController.StartPatrol();
+            if(aiAgentController.CreateNewPatrol(targetList))
+                aiAgentController.StartPatrol();
         }
     }
 

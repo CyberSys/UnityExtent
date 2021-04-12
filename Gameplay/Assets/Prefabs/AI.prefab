@@ -10094,12 +10094,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e688c995fef5cad4aa1ad8f8a3334c66, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Speed: 0
+  Speed: 1
   Tilt: 0
   GridController: {fileID: 0}
   DebugText: {fileID: 0}
-  currentPatrolTarget: 0
-  patrolTargets: []
   speed: 2
   turnSpeed: 3
   turnDst: 5
@@ -10155,7 +10153,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.029045586
+        value: 0.023256302
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -10168,7 +10166,7 @@ LineRenderer:
     colorGradient:
       serializedVersion: 2
       key0: {r: 1, g: 1, b: 1, a: 1}
-      key1: {r: 1, g: 1, b: 1, a: 1}
+      key1: {r: 1, g: 0, b: 0, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
