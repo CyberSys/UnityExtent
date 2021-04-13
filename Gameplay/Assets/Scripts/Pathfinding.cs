@@ -12,32 +12,34 @@ public class Pathfinding : MonoBehaviour
     {
         _gridController = gameObject.GetComponent<GridController>();
     }
+
+    public void FindPatrol()
+    {
+        
+    }
     
     public void FindPath(PathRequest request, Action<PathResult> callback)
     {
         List<Cell> pathCells = new List<Cell>();
         bool pathSuccess = false;
-        if(request.pathStart == request.viaLocation)
-            pathCells = PathSearch(request.agentID, request.currentMovementDirection, request.pathStart, request.pathEnd, out pathSuccess);
-        else
+
+        foreach (var targetCell in request.targetCells)
         {
-            List<Cell> initialPathCells = new List<Cell>();
+            List<Cell> pathSection = new List<Cell>();
             
-            initialPathCells = PathSearch(request.agentID, request.currentMovementDirection, request.pathStart, request.viaLocation,  out pathSuccess);
+            pathSection = PathSearch(request.agentID, request.startingMovementDirection, request.startingCell.GetCentre(), targetCell.GetCentre(),  out pathSuccess);
             
             Vector3 startingMovementDirection;
 
-            if (initialPathCells.Count < 2)
+            if (pathSection.Count < 2)
             {
-                Cell startCell = _gridController.GetCellFromWorldPosition(request.pathStart);
-                
-                startingMovementDirection = initialPathCells[initialPathCells.Count - 1]
-                    .GetCentre() - startCell.GetCentre();
+                startingMovementDirection = pathSection[pathSection.Count - 1]
+                    .GetCentre() - request.startingCell.GetCentre();
             }
             else
             {
-                startingMovementDirection = initialPathCells[initialPathCells.Count - 1]
-                    .GetCentre() - initialPathCells[initialPathCells.Count - 2]
+                startingMovementDirection = pathSection[pathSection.Count - 1]
+                    .GetCentre() - pathSection[pathSection.Count - 2]
                     .GetCentre();
             }
 
@@ -46,16 +48,11 @@ public class Pathfinding : MonoBehaviour
             //Vector3.right - Vector3(1, 0, 0);
             //Vector3.left - Vector3(-1, 0, 0);
             
-            List<Cell> secondPathCells = new List<Cell>();
+            pathCells.AddRange(pathSection);
             
-            secondPathCells = PathSearch(request.agentID, startingMovementDirection, request.viaLocation, request.pathEnd,  out pathSuccess);
-
-            //secondPathCells.RemoveAt(0); // to prevent duplicate cell
-            
-            pathCells.AddRange(initialPathCells);
-            pathCells.AddRange(secondPathCells);
+            // TODO update starting direction for next path and starting cell
         }
-        callback (new PathResult (pathCells, pathSuccess, request.patrolTargetIndex, request.callback));
+        callback (new PathResult (pathCells, pathSuccess, request.callback));
     }
 
     private List<Cell> PathSearch(int agentID, Vector3 currentMovementDirection, Vector3 pathStart, Vector3 pathEnd, out bool pathSuccess)

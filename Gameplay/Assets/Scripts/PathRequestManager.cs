@@ -22,7 +22,7 @@ public class PathRequestManager : MonoBehaviour {
 			lock (results) {
 				for (int i = 0; i < itemsInQueue; i++) {
 					PathResult result = results.Dequeue ();
-					result.callback (result.pathCells, result.success, result.patrolTargetIndex);
+					result.callback (result.pathCells, result.success);
 				}
 			}
 		}
@@ -45,14 +45,12 @@ public class PathRequestManager : MonoBehaviour {
 public struct PathResult {
 	public List<Cell> pathCells;
 	public bool success;
-	public int patrolTargetIndex;
-	public Action<List<Cell>, bool, int> callback;
+	public Action<List<Cell>, bool> callback;
 
-	public PathResult (List<Cell> pathCells, bool success, int patrolTargetIndex, Action<List<Cell>, bool, int> callback)
+	public PathResult (List<Cell> pathCells, bool success, Action<List<Cell>, bool> callback)
 	{
 		this.pathCells = pathCells;
 		this.success = success;
-		this.patrolTargetIndex = patrolTargetIndex;
 		this.callback = callback;
 	}
 }
@@ -60,32 +58,19 @@ public struct PathResult {
 public struct PathRequest
 {
 	public int agentID;
-	public int patrolTargetIndex;
-	public Vector3 currentMovementDirection;
-	public Vector3 pathStart;
-	public Vector3 viaLocation;
-	public Vector3 pathEnd;
-	public Action<List<Cell>, bool, int> callback;
+	public Vector3 startingMovementDirection;
+	public Cell startingCell;
+	public List<Cell> targetCells;
+	public Action<List<Cell>, bool> callback;
 
-	public PathRequest(int _agentID, int _patrolTargetIndex, Vector3 _currentMovementDirection, Vector3 _start, Vector3 _end, Action<List<Cell>, bool, int> _callback)
+	public PathRequest(int _agentID, int _patrolTargetIndex, Vector3 _startingMovementDirection, Cell _startingCell, List<Cell> _targetCells, Action<List<Cell>, bool> _callback)
 	{
 		agentID = _agentID;
-		patrolTargetIndex = _patrolTargetIndex;
-		currentMovementDirection = _currentMovementDirection;
-		pathStart = _start;
-		viaLocation = _start;
-		pathEnd = _end;
-		callback = _callback;
-	}
-	
-	public PathRequest(int _agentID, int _patrolTargetIndex, Vector3 _currentMovementDirection, Vector3 _start, Vector3 _via, Vector3 _end, Action<List<Cell>, bool, int> _callback)
-	{
-		agentID = _agentID;
-		patrolTargetIndex = _patrolTargetIndex;
-		currentMovementDirection = _currentMovementDirection;
-		pathStart = _start;
-		viaLocation = _via;
-		pathEnd = _end;
+		startingMovementDirection = _startingMovementDirection;
+		startingCell = _startingCell;
+		targetCells = _targetCells;
 		callback = _callback;
 	}
 }
+
+
