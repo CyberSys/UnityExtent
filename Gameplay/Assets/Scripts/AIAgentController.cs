@@ -70,28 +70,28 @@ public class AIAgentController : AgentController
         StopCoroutine(UpdatePath ());
     }
     
-    public void OnPathFound(List<Cell> pathCells, bool pathSuccessful, int patrolTargetIndex) {
-        if (pathSuccessful)
-        {
-            patrol.SetPatrolPath(patrolTargetIndex, new Path(pathCells));
-
-            if (patrolTargetIndex > 0)
-            {
-                Cell startingCell = GridController.GetCellFromWorldPosition(patrol.GetStartPosition(patrolTargetIndex));
-
-                Vector3 startingMovementDirection = patrol.GetStartDirection(patrolTargetIndex);
-                
-                patrol.CheckPreviousPathConnectivity(GridController, startingCell, startingMovementDirection, patrolTargetIndex);
-            }
-            
-            if(patrol.IsPatrolReady())
-                patrol.CheckCurrentPathConnectivity(GridController, GetStartingCell(), GetStartingMovementDirection());
-
-            if (patrolTargetIndex == patrol.GetCurrentPatrolIndex())
-            {
-                ChangePath();
-            }
-        }
+    public void OnPathFound(List<Cell> pathCells, bool pathSuccessful) {
+        // if (pathSuccessful)
+        // {
+        //     patrol.SetPatrolPath(patrolTargetIndex, new Path(pathCells));
+        //
+        //     if (patrolTargetIndex > 0)
+        //     {
+        //         Cell startingCell = GridController.GetCellFromWorldPosition(patrol.GetStartPosition(patrolTargetIndex));
+        //
+        //         Vector3 startingMovementDirection = patrol.GetStartDirection(patrolTargetIndex);
+        //         
+        //         patrol.CheckPreviousPathConnectivity(GridController, startingCell, startingMovementDirection, patrolTargetIndex);
+        //     }
+        //     
+        //     if(patrol.IsPatrolReady())
+        //         patrol.CheckCurrentPathConnectivity(GridController, GetStartingCell(), GetStartingMovementDirection());
+        //
+        //     if (patrolTargetIndex == patrol.GetCurrentPatrolIndex())
+        //     {
+        //         ChangePath();
+        //     }
+        // }
         // else
         // {
         //     if (patrolTargetIndex == currentPatrolTarget)
@@ -122,13 +122,17 @@ public class AIAgentController : AgentController
         if(GetCurrentCell() != null && patrol != null)
             base.FixedUpdate();
     }
-    
-    IEnumerator UpdatePath() {
-        if (Time.timeSinceLevelLoad < .3f) {
-            yield return new WaitForSeconds (.3f);
+
+    IEnumerator UpdatePath()
+    {
+        if (Time.timeSinceLevelLoad < .3f)
+        {
+            yield return new WaitForSeconds(.3f);
         }
 
-        PathRequestManager.RequestPath (new PathRequest(base.ID,0, GetStartingMovementDirection(), GetStartingCell().transform.position, patrol.GetPatrolTarget(0).position, OnPathFound));
+        PathRequestManager.RequestPath(new PathRequest(base.ID, 0, GetStartingMovementDirection(),
+            GridController.GetCellFromWorldPosition(GetStartingCell().transform.position),
+            new List<Cell> { GridController.GetCellFromWorldPosition(patrol.GetPatrolTarget(0).position) }, OnPathFound));
 
         float sqrMoveThreshold = pathUpdateMoveThreshold * pathUpdateMoveThreshold;
         Vector3 currentTargetPosition = patrol.GetCurrentPatrolTarget().position;
@@ -169,14 +173,14 @@ public class AIAgentController : AgentController
                     if (i != patrol.GetCurrentPatrolIndex())
                     {
                         PathRequestManager.RequestPath(new PathRequest(base.ID, i, patrol.GetStartDirection(i),
-                            patrol.GetStartPosition(i), patrol.GetPatrolTarget(i).position, OnPathFound));
+                            GridController.GetCellFromWorldPosition(patrol.GetStartPosition(i)),
+                            new List<Cell> { GridController.GetCellFromWorldPosition(patrol.GetPatrolTarget(i).position) }, OnPathFound));
                     }
                     else
                     {
                         PathRequestManager.RequestPath(new PathRequest(base.ID, i, GetMovementDirection(),
-                            patrol.GetStartPosition(i),
-                            GetCurrentCell().GetCentre(),
-                            patrol.GetPatrolTarget(i).position, OnPathFound));
+                            GridController.GetCellFromWorldPosition(patrol.GetStartPosition(i)),
+                            new List<Cell> { GridController.GetCellFromWorldPosition(patrol.GetPatrolTarget(i).position) }, OnPathFound));
                     }
                     currentTargetPosition = patrol.GetPatrolTarget(i).position;
                 }
@@ -203,7 +207,7 @@ public class AIAgentController : AgentController
 
     private void ChangePath()
     {
-        activePath = ClonePatrol(patrol.GetCurrentPatrolPath());
+        activePath = ClonePatrol(patrol.GetPatrolPath());
         
         StopCoroutine("FollowPath");
         StartCoroutine("FollowPath");
