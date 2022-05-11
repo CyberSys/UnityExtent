@@ -282,22 +282,9 @@ public class GridController : PersistableObject
         
         Camera.main.GetComponent<CameraController>().PlayerTransform = player.transform;
 
-        CreateAIAgent(new Vector3(0.5f,0.0f, 8.5f), Vector3.back, CreatePatrol(new List<Vector3> {new Vector3(0.5f,0f,0.5f),new Vector3(2.5f,0f,3.5f)}));
+        CreateAIAgent(Vector3.back, new List<Vector3> {new Vector3(0.5f,0f,0.5f),new Vector3(2.5f,0f,3.5f)});
         
-        CreateAIAgent(new Vector3(2.5f,0.0f, 2.5f), Vector3.forward, CreatePatrol(new List<Vector3> {new Vector3(5.5f,0f,0.5f),new Vector3(2.5f,0f,3.5f)}));
-    }
-
-    private List<GameObject> CreatePatrol(List<Vector3> positions)
-    {
-        List<GameObject> patrol = new List<GameObject>();
-        for (int i = 0; i < positions.Count; i++)
-        {
-            GameObject pathPosition = new GameObject();
-            pathPosition.transform.position = GetCellFromWorldPosition(positions[i]).GetCentre();
-            patrol.Add(pathPosition);
-        }
-
-        return patrol;
+        CreateAIAgent(Vector3.forward, new List<Vector3> {new Vector3(5.5f,0f,0.5f),new Vector3(2.5f,0f,3.5f), new Vector3(2.5f,0.0f, 2.5f)});
     }
 
     private void CreatePlayerAgent(Vector3 position, Vector3 movementDirection)
@@ -312,12 +299,16 @@ public class GridController : PersistableObject
         Camera.main.GetComponent<CameraController>().PlayerTransform = player.transform;
     }
 
-    private void CreateAIAgent(Vector3 position, Vector3 movementDirection, List<GameObject> patrol)
+    private void CreateAIAgent(Vector3 movementDirection, List<Vector3> keyPatrolTargets)
     {
-        Cell startCell = GetCellFromWorldPosition(position);
+        if (keyPatrolTargets.Count < 2)
+        {
+            throw new InvalidOperationException("Not enough patrol targets.");
+        }
+        Cell startCell = GetCellFromWorldPosition(keyPatrolTargets[0]);
         
         AgentController aiAgent =
-            Instantiate(ObjectFactory.Get(4) as AIAgentController, position, Quaternion.identity)
+            Instantiate(ObjectFactory.Get(4) as AIAgentController, keyPatrolTargets[0], Quaternion.identity)
                 .GetComponent<AgentController>();
         aiAgent.ID = AgentCount++;
         aiAgent.SetStartingMovementDirection(movementDirection);
@@ -336,17 +327,8 @@ public class GridController : PersistableObject
             patrolList.name = "Agent: " + aiAgent.ID + " Patrol";
             patrolList.transform.position = Vector3.zero;
 
-            List<Transform> targetList = new List<Transform>();
-            
-            foreach (var gameObject in patrol)
-            {
-                targetList.Add(gameObject.transform);
-                gameObject.name = gameObject.transform.position.ToString();
-                gameObject.transform.SetParent(patrolList.transform);
-            }
-
-            if(aiAgentController.CreateNewPatrol(targetList))
-                aiAgentController.StartPatrol();
+            aiAgentController.SetKeyPatrolTargets(keyPatrolTargets);
+            aiAgentController.StartPatrol();
         }
     }
 

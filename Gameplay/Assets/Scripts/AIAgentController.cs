@@ -24,7 +24,7 @@ public class AIAgentController : AgentController
 
     // private Path currentPatrol;
     // private List<Path> patrolPaths;
-    // private List<Vector3> startPositions;
+    private List<Vector3> keyPatrolTargets;
     // private List<Vector3> startDirections;
     // private bool patrolJoined = false;
     
@@ -44,14 +44,23 @@ public class AIAgentController : AgentController
             debugConsole.text = output;
     }
 
-    public bool CreateNewPatrol(List<Transform> patrolTargets)
+    public bool CreateNewPatrol(List<Vector3> keyPatrolTargets)
     {
         if(GameObject.Find("Debug Console"))
             debugConsole = GameObject.Find("Debug Console").GetComponent<Text>();
         
-        if (patrolTargets.Count > 0)
+        if (keyPatrolTargets.Count > 0)
         {
-            patrol = new Patrol(patrolTargets, GetStartingCell().transform.position, GetStartingMovementDirection());
+            List<Transform> keyPatrolTargetsTransforms = new List<Transform>();
+
+            foreach (var patrolTarget in keyPatrolTargets)
+            {
+                GameObject pathPosition = new GameObject();
+                pathPosition.transform.position = GridController.GetCellFromWorldPosition(patrolTarget).GetCentre();
+                keyPatrolTargetsTransforms.Add(pathPosition.transform);
+            }
+            
+            patrol = new Patrol(keyPatrolTargetsTransforms, GetStartingCell().transform.position, GetStartingMovementDirection());
             
             StartCoroutine(UpdatePath());
 
@@ -71,27 +80,15 @@ public class AIAgentController : AgentController
     }
     
     public void OnPathFound(List<Cell> pathCells, bool pathSuccessful) {
-        // if (pathSuccessful)
-        // {
-        //     patrol.SetPatrolPath(patrolTargetIndex, new Path(pathCells));
-        //
-        //     if (patrolTargetIndex > 0)
-        //     {
-        //         Cell startingCell = GridController.GetCellFromWorldPosition(patrol.GetStartPosition(patrolTargetIndex));
-        //
-        //         Vector3 startingMovementDirection = patrol.GetStartDirection(patrolTargetIndex);
-        //         
-        //         patrol.CheckPreviousPathConnectivity(GridController, startingCell, startingMovementDirection, patrolTargetIndex);
-        //     }
-        //     
-        //     if(patrol.IsPatrolReady())
-        //         patrol.CheckCurrentPathConnectivity(GridController, GetStartingCell(), GetStartingMovementDirection());
-        //
-        //     if (patrolTargetIndex == patrol.GetCurrentPatrolIndex())
-        //     {
-        //         ChangePath();
-        //     }
-        // }
+        if (pathSuccessful)
+        {
+            patrol.SetPatrolPath(new Path(pathCells));
+        
+            // if (patrolTargetIndex == patrol.GetCurrentPatrolIndex())
+            {
+                ChangePath();
+            }
+        }
         // else
         // {
         //     if (patrolTargetIndex == currentPatrolTarget)
@@ -123,6 +120,13 @@ public class AIAgentController : AgentController
             base.FixedUpdate();
     }
 
+    public void SetKeyPatrolTargets(List<Vector3> _keyPatrolTargets)
+    {
+        keyPatrolTargets = _keyPatrolTargets;
+        
+        CreateNewPatrol(keyPatrolTargets);
+    }
+
     IEnumerator UpdatePath()
     {
         if (Time.timeSinceLevelLoad < .3f)
@@ -130,67 +134,68 @@ public class AIAgentController : AgentController
             yield return new WaitForSeconds(.3f);
         }
 
-        PathRequestManager.RequestPath(new PathRequest(base.ID, 0, GetStartingMovementDirection(),
-            GridController.GetCellFromWorldPosition(GetStartingCell().transform.position),
-            new List<Cell> { GridController.GetCellFromWorldPosition(patrol.GetPatrolTarget(0).position) }, OnPathFound));
+        // TODO
+        // At the moment this is still stuck on the old system where a patrol path would be a list on paths from one point to another target point
+        // I decided that I would prefer the pathfinding to be calculated for one whole path rather that splitting it into sections and trying to join
+        // them back together
+        // So the next job is to shift how this is calculated into the pathfinding algorithm
+        // Maybe the path request should take a list of targets and work out a path from that?
+        
+        // Following call is only ever calculating a path the the first target, not every target in the list, it's broken atm!
+        PathRequestManager.RequestPath(new PathRequest(base.ID, this.GetStartingMovementDirection(), keyPatrolTargets, OnPathFound));
 
         float sqrMoveThreshold = pathUpdateMoveThreshold * pathUpdateMoveThreshold;
         Vector3 currentTargetPosition = patrol.GetCurrentPatrolTarget().position;
 
-        while (true) {
-            yield return new WaitForSeconds (minPathUpdateTime);
-            for (var i = 0; i < patrol.GetNumberOfPatrolTargets(); i++)
-            {
-                //print(((patrol.GetCurrentTarget().position - targetPosOld).sqrMagnitude) + "    " + sqrMoveThreshold);
-
-                bool readyToRequest = false; // protecting against requesting a path before we have enough information
-    
-                if (i > 0 && patrol.IsPathReady(i-1))
-                {
-                    patrol.SetStartPosition(i, patrol.GetPatrolTarget(i-1).transform.position);
-                    
-                    readyToRequest = true;
-                }
-                else if (i == 0)
-                {
-                    readyToRequest = true;
-                }
-
-                Cell currentCell = GetCurrentCell();
-
-                Cell currentPatrolTargetCell =
-                    GridController.GetCellFromWorldPosition(patrol.GetCurrentPatrolTarget().position);
-
-                if(i == patrol.GetCurrentPatrolIndex() && currentCell.gridPosition == currentPatrolTargetCell.gridPosition)
-                {
-                    NextPatrol();
-
-                    ChangePath();
-                }
-                
-                if (readyToRequest && (patrol.GetPatrolTarget(i).position - currentTargetPosition).sqrMagnitude > sqrMoveThreshold)
-                {
-                    if (i != patrol.GetCurrentPatrolIndex())
-                    {
-                        PathRequestManager.RequestPath(new PathRequest(base.ID, i, patrol.GetStartDirection(i),
-                            GridController.GetCellFromWorldPosition(patrol.GetStartPosition(i)),
-                            new List<Cell> { GridController.GetCellFromWorldPosition(patrol.GetPatrolTarget(i).position) }, OnPathFound));
-                    }
-                    else
-                    {
-                        PathRequestManager.RequestPath(new PathRequest(base.ID, i, GetMovementDirection(),
-                            GridController.GetCellFromWorldPosition(patrol.GetStartPosition(i)),
-                            new List<Cell> { GridController.GetCellFromWorldPosition(patrol.GetPatrolTarget(i).position) }, OnPathFound));
-                    }
-                    currentTargetPosition = patrol.GetPatrolTarget(i).position;
-                }
-            }
-        }
-    }
-
-    private void NextPatrol()
-    {
-        patrol.IncrementCurrentPatrolPathhIndex();
+        // while (true) {
+        //     yield return new WaitForSeconds (minPathUpdateTime);
+        //     for (var i = 0; i < patrol.GetNumberOfPatrolTargets(); i++)
+        //     {
+        //         //print(((patrol.GetCurrentTarget().position - targetPosOld).sqrMagnitude) + "    " + sqrMoveThreshold);
+        //
+        //         bool readyToRequest = false; // protecting against requesting a path before we have enough information
+        //
+        //         if (i > 0 && patrol.IsPathReady(i-1))
+        //         {
+        //             patrol.SetStartPosition(i, patrol.GetPatrolTarget(i-1).transform.position);
+        //             
+        //             readyToRequest = true;
+        //         }
+        //         else if (i == 0)
+        //         {
+        //             readyToRequest = true;
+        //         }
+        //
+        //         Cell currentCell = GetCurrentCell();
+        //
+        //         Cell currentPatrolTargetCell =
+        //             GridController.GetCellFromWorldPosition(patrol.GetCurrentPatrolTarget().position);
+        //
+        //         if(i == patrol.GetCurrentPatrolIndex() && currentCell.gridPosition == currentPatrolTargetCell.gridPosition)
+        //         {
+        //             NextPatrol();
+        //
+        //             ChangePath();
+        //         }
+        //         
+        //         if (readyToRequest && (patrol.GetPatrolTarget(i).position - currentTargetPosition).sqrMagnitude > sqrMoveThreshold)
+        //         {
+        //             if (i != patrol.GetCurrentPatrolIndex())
+        //             {
+        //                 PathRequestManager.RequestPath(new PathRequest(base.ID, i, patrol.GetStartDirection(i),
+        //                     GridController.GetCellFromWorldPosition(patrol.GetStartPosition(i)),
+        //                     new List<Cell> { GridController.GetCellFromWorldPosition(patrol.GetPatrolTarget(i).position) }, OnPathFound));
+        //             }
+        //             else
+        //             {
+        //                 PathRequestManager.RequestPath(new PathRequest(base.ID, i, GetMovementDirection(),
+        //                     GridController.GetCellFromWorldPosition(patrol.GetStartPosition(i)),
+        //                     new List<Cell> { GridController.GetCellFromWorldPosition(patrol.GetPatrolTarget(i).position) }, OnPathFound));
+        //             }
+        //             currentTargetPosition = patrol.GetPatrolTarget(i).position;
+        //         }
+        //     }
+        // }
     }
 
     private Path ClonePatrol(Path patrolPath)
