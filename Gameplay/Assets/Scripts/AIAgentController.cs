@@ -133,69 +133,9 @@ public class AIAgentController : AgentController
         {
             yield return new WaitForSeconds(.3f);
         }
-
-        // TODO
-        // At the moment this is still stuck on the old system where a patrol path would be a list on paths from one point to another target point
-        // I decided that I would prefer the pathfinding to be calculated for one whole path rather that splitting it into sections and trying to join
-        // them back together
-        // So the next job is to shift how this is calculated into the pathfinding algorithm
-        // Maybe the path request should take a list of targets and work out a path from that?
         
         // Following call is only ever calculating a path the the first target, not every target in the list, it's broken atm!
         PathRequestManager.RequestPath(new PathRequest(base.ID, this.GetStartingMovementDirection(), keyPatrolTargets, OnPathFound));
-
-        float sqrMoveThreshold = pathUpdateMoveThreshold * pathUpdateMoveThreshold;
-        Vector3 currentTargetPosition = patrol.GetCurrentPatrolTarget().position;
-
-        // while (true) {
-        //     yield return new WaitForSeconds (minPathUpdateTime);
-        //     for (var i = 0; i < patrol.GetNumberOfPatrolTargets(); i++)
-        //     {
-        //         //print(((patrol.GetCurrentTarget().position - targetPosOld).sqrMagnitude) + "    " + sqrMoveThreshold);
-        //
-        //         bool readyToRequest = false; // protecting against requesting a path before we have enough information
-        //
-        //         if (i > 0 && patrol.IsPathReady(i-1))
-        //         {
-        //             patrol.SetStartPosition(i, patrol.GetPatrolTarget(i-1).transform.position);
-        //             
-        //             readyToRequest = true;
-        //         }
-        //         else if (i == 0)
-        //         {
-        //             readyToRequest = true;
-        //         }
-        //
-        //         Cell currentCell = GetCurrentCell();
-        //
-        //         Cell currentPatrolTargetCell =
-        //             GridController.GetCellFromWorldPosition(patrol.GetCurrentPatrolTarget().position);
-        //
-        //         if(i == patrol.GetCurrentPatrolIndex() && currentCell.gridPosition == currentPatrolTargetCell.gridPosition)
-        //         {
-        //             NextPatrol();
-        //
-        //             ChangePath();
-        //         }
-        //         
-        //         if (readyToRequest && (patrol.GetPatrolTarget(i).position - currentTargetPosition).sqrMagnitude > sqrMoveThreshold)
-        //         {
-        //             if (i != patrol.GetCurrentPatrolIndex())
-        //             {
-        //                 PathRequestManager.RequestPath(new PathRequest(base.ID, i, patrol.GetStartDirection(i),
-        //                     GridController.GetCellFromWorldPosition(patrol.GetStartPosition(i)),
-        //                     new List<Cell> { GridController.GetCellFromWorldPosition(patrol.GetPatrolTarget(i).position) }, OnPathFound));
-        //             }
-        //             else
-        //             {
-        //                 PathRequestManager.RequestPath(new PathRequest(base.ID, i, GetMovementDirection(),
-        //                     GridController.GetCellFromWorldPosition(patrol.GetStartPosition(i)),
-        //                     new List<Cell> { GridController.GetCellFromWorldPosition(patrol.GetPatrolTarget(i).position) }, OnPathFound));
-        //             }
-        //             currentTargetPosition = patrol.GetPatrolTarget(i).position;
-        //         }
-        //     }
-        // }
     }
 
     private Path ClonePatrol(Path patrolPath)
@@ -233,8 +173,8 @@ public class AIAgentController : AgentController
             {
                 for (int i = 0; i < activePath.pathCells.Count; i++)
                 {
-                    if (currentCell.GetCentre() == activePath.pathCells[i].GetCentre()
-                        || activePath.pathCells.Contains(currentCell))
+                    if (currentCell.GetCentre() == activePath.pathCells[i].GetCentre())
+                        //|| activePath.pathCells.Contains(currentCell))
                     {
                         activePath.pathCells.RemoveAt(i);
                         i--;
@@ -299,6 +239,10 @@ public class AIAgentController : AgentController
                             }
                         }
                     }
+                }
+                else
+                {
+                    ChangePath();
                 }
             }
 

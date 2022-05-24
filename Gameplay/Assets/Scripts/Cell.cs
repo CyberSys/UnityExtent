@@ -17,8 +17,13 @@ public class Cell : PersistableObject, IHeapItem<Cell>
         SetCentre(previousCell.GetCentre());
         SetWalkable(previousCell.IsWalkable());
         name = previousCell.name;
-        
-        // TODO need to copy bounds as well?
+    }
+
+    public void ResetPathInfo()
+    {
+        gCost = 0;
+        hCost = 0;
+        this.parent = null;
     }
     public int HeapIndex
     {
@@ -158,7 +163,7 @@ public class Cell : PersistableObject, IHeapItem<Cell>
     public void SetNextCellIndicator(bool isNextCell)
     {
         nextCell = isNextCell;
-        GETChildGameObjectWithName(gameObject, "Next").GetComponent<MeshRenderer>().enabled = nextCell;
+        //GETChildGameObjectWithName(gameObject, "Next").GetComponent<MeshRenderer>().enabled = nextCell;
     }
     
     public void SetPathCellIndicator(bool inPath)

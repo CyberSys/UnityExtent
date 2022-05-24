@@ -364,10 +364,9 @@ public class Patrol
         {
             points.Add(cell.transform.position);
         }
-        
 
-        // if(_patrolPaths.Count > 0 && _patrolPaths[0].pathCells.Count > 0)
-        //     points.Add(_patrolPath.pathCells[0].transform.position);
+        if(_patrolPath.pathCells.Count > 0)
+            points.Add(_patrolPath.pathCells[0].transform.position);
 
         return points;
     }

@@ -1,28 +1,24 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-
 using UnityEngine;
-using UnityEngine.AI;
-using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 public class GridController : PersistableObject
 {
-    private PlayerAgentController player;
+    private PlayerAgentController _player;
 
-    private int AgentCount = 0;
+    private int _agentCount = 0;
     
     public int rowNumber = 10;
     public int columnNumber = 10;
-    private float cellWidth = 1.0f;
+    private float _cellWidth = 1.0f;
 
     private List<List<Cell>> _grid = new List<List<Cell>>();
     
-    private List<Cell> playerAccessibleCells = new List<Cell>();
+    private List<Cell> _playerAccessibleCells = new List<Cell>();
 
-    private GameObject gridContainerObject;
+    private GameObject _gridContainerObject;
 
     public int MaxSize
     {
@@ -34,8 +30,8 @@ public class GridController : PersistableObject
 
     public Cell GetCellFromWorldPosition(Vector3 worldPosition)
     {
-        float gridWidth = rowNumber * cellWidth;
-        float gridHeight = columnNumber  * cellWidth;
+        float gridWidth = rowNumber * _cellWidth;
+        float gridHeight = columnNumber  * _cellWidth;
         
         //float percentX = (worldPosition.x + (gridWidth / 2.0f)) / gridWidth; // centred at origin, mine isn't
         float percentX = worldPosition.x / gridWidth;
@@ -166,7 +162,18 @@ public class GridController : PersistableObject
         }
     }
 
-    private static GameObject GETChildGameObjectWithName(GameObject parent, string withName) {
+    public void ResetPathSearch()
+    {
+        foreach (var row in _grid)
+        {
+            foreach (var cell in row)
+            {
+                cell.ResetPathInfo();
+            }
+        }
+    }
+
+    private static GameObject GetChildGameObjectWithName(GameObject parent, string withName) {
         for (var i = 0; i < parent.transform.childCount; i++)
         {
             if (parent.transform.GetChild(i).name == withName)
@@ -265,10 +272,10 @@ public class GridController : PersistableObject
 
     private GameObject CreateGridObject()
     {
-        gridContainerObject = new GameObject {name = "Grid"};
+        _gridContainerObject = new GameObject {name = "Grid"};
 
-        gridContainerObject.transform.parent = this.transform;
-        return gridContainerObject;
+        _gridContainerObject.transform.parent = this.transform;
+        return _gridContainerObject;
     }
 
     static IEnumerator Wait(float time)
@@ -278,11 +285,11 @@ public class GridController : PersistableObject
 
     void InitiliaseAgents()
     {
-        CreatePlayerAgent(new Vector3(3.5f, 0.0f, 5.5f), Vector3.forward);
+        CreatePlayerAgent(new Vector3(3.5f, 0.0f, 3.5f), Vector3.forward);
         
-        Camera.main.GetComponent<CameraController>().PlayerTransform = player.transform;
+        Camera.main.GetComponent<CameraController>().PlayerTransform = _player.transform;
 
-        CreateAIAgent(Vector3.back, new List<Vector3> {new Vector3(0.5f,0f,0.5f),new Vector3(2.5f,0f,3.5f)});
+        CreateAIAgent(Vector3.right, new List<Vector3> {new Vector3(0.5f,0f,0.5f),new Vector3(2.5f,0f,2.5f)});
         
         CreateAIAgent(Vector3.forward, new List<Vector3> {new Vector3(5.5f,0f,0.5f),new Vector3(2.5f,0f,3.5f), new Vector3(2.5f,0.0f, 2.5f)});
     }
@@ -291,12 +298,12 @@ public class GridController : PersistableObject
     {
         Cell startCell = GetCellFromWorldPosition(position);
         
-        player = Instantiate(ObjectFactory.Get(3) as PlayerAgentController);
-        player.ID = AgentCount++;
-        player.SetStartingMovementDirection(movementDirection);
-        player.SetStartingCell(startCell.gridPosition.X, startCell.gridPosition.Y);
+        _player = Instantiate(ObjectFactory.Get(3) as PlayerAgentController);
+        _player.ID = _agentCount++;
+        _player.SetStartingMovementDirection(movementDirection);
+        _player.SetStartingCell(startCell.gridPosition.X, startCell.gridPosition.Y);
         
-        Camera.main.GetComponent<CameraController>().PlayerTransform = player.transform;
+        Camera.main.GetComponent<CameraController>().PlayerTransform = _player.transform;
     }
 
     private void CreateAIAgent(Vector3 movementDirection, List<Vector3> keyPatrolTargets)
@@ -307,10 +314,15 @@ public class GridController : PersistableObject
         }
         Cell startCell = GetCellFromWorldPosition(keyPatrolTargets[0]);
         
+        if (keyPatrolTargets[0] != keyPatrolTargets[keyPatrolTargets.Count - 1])
+        {
+            keyPatrolTargets.Add(keyPatrolTargets[0]);
+        }
+        
         AgentController aiAgent =
             Instantiate(ObjectFactory.Get(4) as AIAgentController, keyPatrolTargets[0], Quaternion.identity)
                 .GetComponent<AgentController>();
-        aiAgent.ID = AgentCount++;
+        aiAgent.ID = _agentCount++;
         aiAgent.SetStartingMovementDirection(movementDirection);
         aiAgent.SetStartingCell(startCell.gridPosition.X, startCell.gridPosition.Y);
 
@@ -369,7 +381,7 @@ public class GridController : PersistableObject
         
         writer.Write(rowNumber);
         writer.Write(columnNumber);
-        writer.Write(cellWidth);
+        writer.Write(_cellWidth);
 
         for (int x = 0; x < rowNumber; x++)
         {
@@ -379,7 +391,7 @@ public class GridController : PersistableObject
             }
         }
         
-        player.Save(writer);
+        _player.Save(writer);
     }
     
     public virtual void Load (GameDataReader reader)
@@ -390,7 +402,7 @@ public class GridController : PersistableObject
 
         rowNumber = reader.ReadInt();
         columnNumber = reader.ReadInt();
-        cellWidth = reader.ReadFloat();
+        _cellWidth = reader.ReadFloat();
         
         _grid = new List<List<Cell>>(rowNumber);
         
@@ -410,10 +422,10 @@ public class GridController : PersistableObject
         }
         
         // Create Player
-        player = Instantiate(ObjectFactory.Get(3) as PlayerAgentController);
-        player.Load(reader);
+        _player = Instantiate(ObjectFactory.Get(3) as PlayerAgentController);
+        _player.Load(reader);
 
-        Camera.main.GetComponent<CameraController>().PlayerTransform = player.transform;
+        Camera.main.GetComponent<CameraController>().PlayerTransform = _player.transform;
     }
     
     public virtual void Set (GameDataReader reader)
@@ -424,7 +436,7 @@ public class GridController : PersistableObject
 
         rowNumber = reader.ReadInt();
         columnNumber = reader.ReadInt();
-        cellWidth = reader.ReadFloat();
+        _cellWidth = reader.ReadFloat();
         
         for (int x = 0; x < rowNumber; x++)
         {
@@ -436,9 +448,9 @@ public class GridController : PersistableObject
         }
         
         // Create Player
-        player.Load(reader);
+        _player.Load(reader);
 
-        Camera.main.GetComponent<CameraController>().PlayerTransform = player.transform;
+        Camera.main.GetComponent<CameraController>().PlayerTransform = _player.transform;
     }
     
     public static int SizeOf(int numberOfRows, int numberOfColumns)

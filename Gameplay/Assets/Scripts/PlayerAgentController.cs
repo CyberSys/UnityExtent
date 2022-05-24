@@ -59,6 +59,9 @@ public class PlayerAgentController : AgentController
         // Combat
 
         UpdateEnemiesInRange();
+
+        // TODO remove to turn player range indicator back on
+        return;
         
         Transform combat_debug_object;
         combat_debug_object = this.transform.GetChild(1);
