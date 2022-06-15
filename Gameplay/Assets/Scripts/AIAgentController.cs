@@ -5,13 +5,10 @@ using System.Linq;
 using System.Security.Policy;
 using UnityEngine;
 using UnityEngine.UI;
-using Random = System.Random;
+using Random = UnityEngine.Random;
 
 public class AIAgentController : AgentController
 {
-    const float minPathUpdateTime = .4f;
-    const float pathUpdateMoveThreshold = .5f;
-
     // public int currentPatrolTarget = 0;
     // public List<Transform> patrolTargets = new List<Transform>();
     public float speed = 2;
@@ -25,6 +22,7 @@ public class AIAgentController : AgentController
     // private Path currentPatrol;
     // private List<Path> patrolPaths;
     private List<Vector3> keyPatrolTargets;
+    private List<Vector3> originalKeyPatrolTargets;
     // private List<Vector3> startDirections;
     // private bool patrolJoined = false;
     
@@ -44,23 +42,14 @@ public class AIAgentController : AgentController
             debugConsole.text = output;
     }
 
-    public bool CreateNewPatrol(List<Vector3> keyPatrolTargets)
+    public bool CreateNewPatrol(List<GameObject> keyPatrolTargets)
     {
         if(GameObject.Find("Debug Console"))
             debugConsole = GameObject.Find("Debug Console").GetComponent<Text>();
         
         if (keyPatrolTargets.Count > 0)
         {
-            List<Transform> keyPatrolTargetsTransforms = new List<Transform>();
-
-            foreach (var patrolTarget in keyPatrolTargets)
-            {
-                GameObject pathPosition = new GameObject();
-                pathPosition.transform.position = GridController.GetCellFromWorldPosition(patrolTarget).GetCentre();
-                keyPatrolTargetsTransforms.Add(pathPosition.transform);
-            }
-            
-            patrol = new Patrol(keyPatrolTargetsTransforms, GetStartingCell().transform.position, GetStartingMovementDirection());
+            patrol = new Patrol(keyPatrolTargets, GetStartingCell().transform.position, GetStartingMovementDirection());
             
             StartCoroutine(UpdatePath());
 
@@ -71,6 +60,7 @@ public class AIAgentController : AgentController
     }
     public void StartPatrol()
     {
+        originalKeyPatrolTargets = keyPatrolTargets;
         patrolling = true;
     }
 
@@ -78,28 +68,57 @@ public class AIAgentController : AgentController
     {
         StopCoroutine(UpdatePath ());
     }
+
+    public void Redirect(Cell problemCell)
+    {
+        List<Vector3> targetPositions = new List<Vector3>(originalKeyPatrolTargets);
+
+        for (int i = 0; i < targetPositions.Count; i++)
+        {
+            Cell targetCell = GridController.GetCellFromWorldPosition(targetPositions[i]);
+            if (targetCell != null &&
+                targetCell.IsOccupiedByAnotherAgent(base.ID))
+            {
+                targetPositions[i] = GridController.GetRandomAccessibleNeighbour(targetCell, GetMovementDirection(), null).GetCentre();
+                break;
+                // i--;
+            }
+        }
+
+        Vector3 originalStartingPosition = targetPositions[0];
+
+        targetPositions[0] = GetCurrentCell().transform.position;
+        
+        Cell newCellDivertion = GridController.GetRandomAccessibleNeighbour(GetCurrentCell(), GetMovementDirection(), problemCell);
+
+        // newCellDivertion = GridController.GetRandomAccessibleNeighbour(newCellDivertion, GetMovementDirection(), problemCell);
+
+        if (newCellDivertion != null)
+        {
+            targetPositions.Insert(1,newCellDivertion.transform.position);
+            targetPositions.Add(GetCurrentCell().transform.position);
+
+            SetKeyPatrolTargets(targetPositions);
+            Vector3 newStartingDirection = GetMovementDirection();
+            SetStartingMovementDirection(newStartingDirection);
+            UpdatePath();
+        }
+        else
+        {
+            throw new InvalidOperationException("Cannot find diversion.");
+        }
+    }
     
     public void OnPathFound(List<Cell> pathCells, bool pathSuccessful) {
         if (pathSuccessful)
         {
             patrol.SetPatrolPath(new Path(pathCells));
-        
-            // if (patrolTargetIndex == patrol.GetCurrentPatrolIndex())
-            {
-                ChangePath();
-            }
+            ChangePath();
         }
-        // else
-        // {
-        //     if (patrolTargetIndex == currentPatrolTarget)
-        //     {
-        //         NextPatrol();
-        //         
-        //         PathRequestManager.RequestPath(new PathRequest(base.ID, currentPatrolTarget, GetMovementDirection(),
-        //             GetCurrentCell().GetCentre(),
-        //             patrolTargets[currentPatrolTarget].position, OnPathFound));
-        //     }
-        // }
+        else
+        {
+            throw new InvalidOperationException("Failed to find successful path.");
+        }
     }
 
     
@@ -123,8 +142,18 @@ public class AIAgentController : AgentController
     public void SetKeyPatrolTargets(List<Vector3> _keyPatrolTargets)
     {
         keyPatrolTargets = _keyPatrolTargets;
+
+        List<GameObject> keyPatrolTargetObjects = new List<GameObject>();
         
-        CreateNewPatrol(keyPatrolTargets);
+        for (int i = 0; i < keyPatrolTargets.Count; i++)
+        {
+            GameObject pathPosition = new GameObject();
+            pathPosition.transform.parent = this.transform;
+            pathPosition.transform.position = GridController.GetCellFromWorldPosition(keyPatrolTargets[i]).GetCentre();
+            keyPatrolTargetObjects.Add(pathPosition);
+        }
+        
+        CreateNewPatrol(keyPatrolTargetObjects);
     }
 
     IEnumerator UpdatePath()
@@ -171,19 +200,13 @@ public class AIAgentController : AgentController
 
             if (distanceToCurrentCellCentre < 0.05f || !movingTowards)
             {
+                if (currentCell.GetCentre() == activePath.pathCells[0].GetCentre())
+                {
+                    activePath.pathCells.RemoveAt(0);
+                }
                 for (int i = 0; i < activePath.pathCells.Count; i++)
                 {
-                    if (currentCell.GetCentre() == activePath.pathCells[i].GetCentre())
-                        //|| activePath.pathCells.Contains(currentCell))
-                    {
-                        activePath.pathCells.RemoveAt(i);
-                        i--;
-                        // Debug.Log(patrolPaths[currentPatrolTarget].pathCells.Count);
-                    }
-                    else
-                    {
-                        break;
-                    }
+                    activePath.pathCells[i].SetAIAgentETA(i, this);
                 }
 
                 if (activePath.pathCells.Count > 0)

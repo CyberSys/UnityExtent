@@ -292,7 +292,8 @@ public class AgentController : PersistableObject
                 SetPreviousCell(_currentCell);
             }
             
-            _currentCell.agentsInCell.Remove(this);
+            if(_currentCell != null)
+                _currentCell.agentsInCell.Remove(this);
             
             _currentCell = currentCell;
             _currentCell.agentsInCell.Add(this);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using Object = System.Object;
@@ -111,6 +112,22 @@ public class Cell : PersistableObject, IHeapItem<Cell>
     private bool leftBoundEnabled = false;
     private bool rightBoundEnabled = false;
     private bool accessible = false; // can player enter
+
+    private Dictionary<AgentController, int> agentETAs;
+
+    public void SetAIAgentETA(int numberOfCellsAway, AIAgentController agent)
+    {
+        if (agentETAs.Count > 0)
+        {
+            agentETAs.Remove(agent); // too late to do something, going past, remove it
+        }
+        agentETAs[agent] = numberOfCellsAway;
+
+        if (agentETAs.Values.Distinct().Count() < agentETAs.Count)
+        {
+            agent.Redirect(this);
+        }
+    }
     
     public int movementPenalty;
 
@@ -140,6 +157,7 @@ public class Cell : PersistableObject, IHeapItem<Cell>
         int x = (int) Math.Floor(centrePosition.x);
         int y = (int) Math.Floor(centrePosition.z);
         gridPosition = new GridPosition(x,y);
+        agentETAs = new Dictionary<AgentController, int>();
     }
 
     public Vector3 GetCentre()
@@ -222,13 +240,13 @@ public class Cell : PersistableObject, IHeapItem<Cell>
         return walkable;
     }
 
-    public bool IsOccupied(int agentID)
+    public bool IsOccupiedByAnotherAgent(int yourAgentID)
     {
         bool occupied = false;
 
         for (int i = 0; i < agentsInCell.Count; i++)
         {
-            if (agentsInCell[i].ID != agentID)
+            if (agentsInCell[i].ID != yourAgentID)
                 occupied = true;
         }
 
@@ -241,20 +259,20 @@ public class Cell : PersistableObject, IHeapItem<Cell>
         GETChildGameObjectWithName(gameObject, "Centre").GetComponent<MeshRenderer>().enabled = accessible;
     }
 
-    public void SetPathIndex(int index)
-    {
-        GameObject canvas = GETChildGameObjectWithName(gameObject, "AI Canvas");
-        if (canvas != null)
-        {
-            canvas.GetComponent<Canvas>().enabled = true;
-            GameObject pathText = GETChildGameObjectWithName(canvas, "Path Index");
-            Text text = pathText.GetComponent<Text>();
-            if (text != null)
-            {
-                text.text = index.ToString();
-            }
-        }
-    }
+    // public void SetPathIndex(int index)
+    // {
+    //     GameObject canvas = GETChildGameObjectWithName(gameObject, "AI Canvas");
+    //     if (canvas != null)
+    //     {
+    //         canvas.GetComponent<Canvas>().enabled = true;
+    //         GameObject pathText = GETChildGameObjectWithName(canvas, "Path Index");
+    //         Text text = pathText.GetComponent<Text>();
+    //         if (text != null)
+    //         {
+    //             text.text += index.ToString() + "\n";
+    //         }
+    //     }
+    // }
 
     public bool IsAccessibleFromCell(Cell currentCell, Vector3 currentMovementDirection)
     {
@@ -290,6 +308,24 @@ public class Cell : PersistableObject, IHeapItem<Cell>
     public void Update()
     {
         SetWalkable(walkable);
+
+        GameObject canvas = GETChildGameObjectWithName(gameObject, "AI Canvas");
+        if (canvas != null)
+        {
+            canvas.GetComponent<Canvas>().enabled = true;
+            GameObject pathText = GETChildGameObjectWithName(canvas, "Path Index");
+            Text text = pathText.GetComponent<Text>();
+
+            text.text = "";
+
+            foreach (var eta in agentETAs)
+            {
+                if (text != null)
+                {
+                    text.text += eta.Key.name + ": " + eta.Value + "\n";
+                }
+            }
+        }
     }
 
     /////////////////////// persistable

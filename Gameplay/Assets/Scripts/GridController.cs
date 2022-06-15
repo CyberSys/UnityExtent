@@ -99,6 +99,18 @@ public class GridController : PersistableObject
 
         return neighbours;
     }
+
+    public Cell GetRandomAccessibleNeighbour(Cell cell, Vector3 currentMovementDirection, Cell problemCell)
+    {
+        List<Cell> accessibleNeighbours = GetAccessibleNeighbours(cell, currentMovementDirection);
+
+        accessibleNeighbours.Remove(problemCell);
+
+        if (accessibleNeighbours.Count < 1)
+            return null;
+
+        return accessibleNeighbours[Random.Range(0, accessibleNeighbours.Count)];
+    }
     
     public List<Cell> GetAccessibleNeighbours(Cell cell, Vector3 currentMovementDirection)
     {
@@ -291,7 +303,7 @@ public class GridController : PersistableObject
 
         CreateAIAgent(Vector3.right, new List<Vector3> {new Vector3(0.5f,0f,0.5f),new Vector3(2.5f,0f,2.5f)});
         
-        CreateAIAgent(Vector3.forward, new List<Vector3> {new Vector3(5.5f,0f,0.5f),new Vector3(2.5f,0f,3.5f), new Vector3(2.5f,0.0f, 2.5f)});
+        CreateAIAgent(Vector3.forward, new List<Vector3> {new Vector3(5.5f,0f,0.5f),new Vector3(2.5f,0f,2.5f), new Vector3(2.5f,0.0f, 3.5f)});
     }
 
     private void CreatePlayerAgent(Vector3 position, Vector3 movementDirection)
@@ -323,6 +335,7 @@ public class GridController : PersistableObject
             Instantiate(ObjectFactory.Get(4) as AIAgentController, keyPatrolTargets[0], Quaternion.identity)
                 .GetComponent<AgentController>();
         aiAgent.ID = _agentCount++;
+        aiAgent.name = "AI " + _agentCount;
         aiAgent.SetStartingMovementDirection(movementDirection);
         aiAgent.SetStartingCell(startCell.gridPosition.X, startCell.gridPosition.Y);
 
@@ -342,28 +355,6 @@ public class GridController : PersistableObject
             aiAgentController.SetKeyPatrolTargets(keyPatrolTargets);
             aiAgentController.StartPatrol();
         }
-    }
-
-    // Update is called once per frame
-    void FixedUpdate()
-    {
-        // uncomment to show player accessible cells
-        // foreach (var cell in playerAccessibleCells)
-        // {
-        //     cell.SetAccessible(false);
-        // }
-        //
-        // playerAccessibleCells = GetAccessibleNeighbours(player.GetCurrentCell(), player.GetMovementDirection());
-        //
-        // foreach (var cell in playerAccessibleCells)
-        // {
-        //     cell.SetAccessible(true);
-        // }
-    }
-
-    private void OnDestroy()
-    {
-        //Destroy(player.gameObject);
     }
 
     /////////////////////// persistable

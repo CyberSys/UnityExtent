@@ -38,13 +38,14 @@ public class Pathfinding : MonoBehaviour
         List<Cell> pathCells = new List<Cell>();
         pathSuccess = false;
         
+        Vector3 currentMovementDirection = startingMovementDirection;
+        Cell originalStartCell = _gridController.GetCellFromWorldPosition(keyPatrolTargets[0]);
+        originalStartCell.parent = originalStartCell;
+        Cell newStartCell = originalStartCell;
+        int targetsFound = 0; // starting at 1 because 0 is starting cell
+        
         if (keyPatrolTargets.Count > 1)
         {
-            Vector3 currentMovementDirection = startingMovementDirection;
-            Cell originalStartCell = _gridController.GetCellFromWorldPosition(keyPatrolTargets[0]);
-            originalStartCell.parent = originalStartCell;
-            Cell newStartCell = originalStartCell;
-            int targetsFound = 0; // starting at 1 because 0 is starting cell
             Cell targetCell = _gridController.GetCellFromWorldPosition(keyPatrolTargets[targetsFound]);
             
             if (originalStartCell.IsWalkable() && targetCell.IsWalkable())
@@ -58,63 +59,94 @@ public class Pathfinding : MonoBehaviour
                 while (openSet.Count > 0)
                 {
                     Cell currentCell = openSet.RemoveFirst();
-                    
+
                     Vector3 directionChange = currentCell.GetCentre() - previousCell.GetCentre();
+
+                    // if (directionChange.magnitude > 1)
+                    // {
+                    //     throw new InvalidOperationException("Something went wrong with path calculation.");
+                    // }
+                    
+                    bool validMovement = false;
 
                     if (directionChange != Vector3.zero)
                     {
-                        bool validMovement = false;
-
-                        CalculateNewMovementDirection(ref currentMovementDirection, directionChange, ref validMovement);
+                        CalculateNewMovementDirection(ref currentMovementDirection, ref directionChange, ref validMovement);
                     }
 
                     closedSet.Add(currentCell);
 
                     if (currentCell == targetCell)
                     {
-                        targetsFound++;
-                        
                         List<Cell> pathSectionCells = new List<Cell>();
 
                         RetracePath(newStartCell, targetCell, pathSectionCells);
 
+                        if (pathSectionCells.Count < 1)
+                        {
+                            pathSectionCells.Add(currentCell);
+                        }
+                        
                         pathCells.AddRange(pathSectionCells);
                         
                         openSet = new Heap<Cell>(_gridController.MaxSize);
                         closedSet = new HashSet<Cell>();
-                        openSet.Add(currentCell);
-                        newStartCell = _gridController.GetCellFromWorldPosition(keyPatrolTargets[targetsFound - 1]);
-                        newStartCell.parent = newStartCell;
+                        
+                        //previousCell = currentCell;
                         
                         bool validSection = false;
-                        
-                        ValidateMovement(ref currentMovementDirection, out validSection, originalStartCell, pathCells);
 
-                        if (targetsFound == keyPatrolTargets.Count) // start position in index 0, so ignore 1
+                        if (pathCells.Count > 0)
                         {
-                            sw.Stop();
-                            // print("Path found: " + sw.ElapsedMilliseconds + "ms.");
-                            pathSuccess = true;
-                            break;
+                            currentMovementDirection = startingMovementDirection;
+                            ValidateMovement(ref currentMovementDirection, out validSection, originalStartCell, pathCells);
                         }
+                        else
+                        {
+                            validSection = true;
+                        }
+
+                        if (!validSection && pathCells.Count != 0)
+                        {
+                            throw new InvalidOperationException("Invalid path.");
+                        }
+
+                        int test = keyPatrolTargets.Count - 1;
+
+                        if (targetsFound == test) // start position in index 0, so ignore 1
+                        {
+                            if (pathCells[0] == pathCells[pathCells.Count - 1])
+                            {
+                                sw.Stop();
+                                // print("Path found: " + sw.ElapsedMilliseconds + "ms.");
+                                pathSuccess = true;
+                                break;
+                            }
+                        }
+
+                        targetsFound++;
                         
                         targetCell = _gridController.GetCellFromWorldPosition(keyPatrolTargets[targetsFound]);
+                        
+                        newStartCell = currentCell;
+                        newStartCell.parent = newStartCell;
+                        openSet.Add(currentCell);
                     }
 
                     List<Cell> neighbours = _gridController.GetAccessibleNeighbours(currentCell, currentMovementDirection);
-                    
-                    Vector3 newMovementDirection = currentMovementDirection;
 
                     foreach (var neighbour in neighbours)
                     {
-                        neighbour.IsAccessibleFromCell(currentCell, currentMovementDirection);
-                        if (!neighbour.IsWalkable() || neighbour.IsOccupied(agentID) || closedSet.Contains(neighbour))
+                        // neighbour.IsAccessibleFromCell(currentCell, currentMovementDirection);
+                        if (!neighbour.IsWalkable() || neighbour.IsOccupiedByAnotherAgent(agentID) || closedSet.Contains(neighbour))
                         {
                             continue;
                         }
 
+                        var cellDistance = GetDistance(currentCell, neighbour);
+
                         var newMovementCostToNeighbour =
-                            currentCell.gCost + GetDistance(currentCell, neighbour) + neighbour.movementPenalty;
+                            currentCell.gCost + cellDistance + neighbour.movementPenalty;
 
                         if (newMovementCostToNeighbour < neighbour.gCost || !openSet.Contains(neighbour))
                         {
@@ -134,11 +166,16 @@ public class Pathfinding : MonoBehaviour
                     previousCell = currentCell;
                 }
             }
+            else
+            {
+                throw new InvalidOperationException("Condition not handled.");
+            }
 
             if (pathSuccess == true)
             {
                 currentMovementDirection = startingMovementDirection;
                 ValidateMovement(ref currentMovementDirection, out pathSuccess, originalStartCell, pathCells);
+                // pathCells.Insert(0, originalStartCell);
             }
         }
 
@@ -156,15 +193,27 @@ public class Pathfinding : MonoBehaviour
             Vector3 directionChange = pathCells[i].GetCentre() -
                                       _gridController.GetCellFromWorldPosition(previousPosition).GetCentre();
 
-            CalculateNewMovementDirection(ref currentMovementDirection, directionChange, ref validMovement);
+            if (directionChange != Vector3.zero && directionChange != currentMovementDirection)
+            {
+                CalculateNewMovementDirection(ref currentMovementDirection, ref directionChange, ref validMovement);
+            }
+            else
+            {
+                validMovement = true;
+            }
 
+            if (validMovement == false)
+            {
+                break;
+            }
+            
             previousPosition = pathCells[i].GetCentre();
         }
 
-        pathSuccess = pathCells.Count > 0 && validMovement ? true : false;
+        pathSuccess = pathCells.Count > 0 && validMovement;
     }
 
-    private static void CalculateNewMovementDirection(ref Vector3 currentMovementDirection, Vector3 directionChange,
+    private static void CalculateNewMovementDirection(ref Vector3 currentMovementDirection, ref Vector3 directionChange,
         ref bool validMovement)
     {
         if (directionChange == currentMovementDirection)
@@ -184,7 +233,7 @@ public class Pathfinding : MonoBehaviour
             else
             {
                 validMovement = false;
-                // throw new InvalidOperationException("Illegal direction change.");
+                throw new InvalidOperationException("Illegal direction change.");
             }
         }
         else if (directionChange == Vector3.left)
@@ -196,7 +245,7 @@ public class Pathfinding : MonoBehaviour
             else
             {
                 validMovement = false;
-                // throw new InvalidOperationException("Illegal direction change.");
+                throw new InvalidOperationException("Illegal direction change.");
             }
         }
         else if (directionChange == Vector3.forward)
@@ -208,7 +257,7 @@ public class Pathfinding : MonoBehaviour
             else
             {
                 validMovement = false;
-                // throw new InvalidOperationException("Illegal direction change.");
+                throw new InvalidOperationException("Illegal direction change.");
             }
         }
         else if (directionChange == Vector3.back)
@@ -220,17 +269,17 @@ public class Pathfinding : MonoBehaviour
             else
             {
                 validMovement = false;
-                // throw new InvalidOperationException("Illegal direction change.");
+                throw new InvalidOperationException("Illegal direction change.");
             }
         }
 
-        currentMovementDirection = directionChange;
+        currentMovementDirection = new Vector3(directionChange.x, directionChange.y, directionChange.z);
     }
 
     void RetracePath(Cell startCell, Cell endCell, List<Cell> path)
     {
         Cell currentCell = endCell;
-
+        
         while (currentCell != startCell)
         {
             path.Add(currentCell);
@@ -242,11 +291,13 @@ public class Pathfinding : MonoBehaviour
         //path = SimplifyPath(path);
         
         path.Reverse();
+        
+        // path.Insert(0,startCell);
 
-        for(int i = 0; i < path.Count; i++)
-        {
-            path[i].SetPathIndex(i);
-        }
+        // for(int i = 0; i < path.Count; i++)
+        // {
+        //     path[i].SetPathIndex(i);
+        // }
         
         // _gridController.SetPath(path);
         _gridController.ResetPathSearch();
@@ -268,9 +319,15 @@ public class Pathfinding : MonoBehaviour
 
     int GetDistance(Cell nodeA, Cell nodeB)
     {
-        int distX = Mathf.Abs(nodeA.gridPosition.X - nodeB.gridPosition.X);
-        int distY = Mathf.Abs(nodeB.gridPosition.Y - nodeB.gridPosition.Y);
+        int distX = nodeA.gridPosition.X - nodeB.gridPosition.X;
+        int distY = nodeA.gridPosition.Y - nodeB.gridPosition.Y;
 
+        if (distX < 0)
+            distX *= -1;
+        
+        if (distY < 0)
+            distY *= -1;
+        
         /* enable diagonals
         if (distX > distY)
             return 14 * distY + 10 * (distX - distY);
