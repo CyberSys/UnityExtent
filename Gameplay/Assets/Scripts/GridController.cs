@@ -301,7 +301,7 @@ public class GridController : PersistableObject
         
         Camera.main.GetComponent<CameraController>().PlayerTransform = _player.transform;
 
-        CreateAIAgent(Vector3.right, new List<Vector3> {new Vector3(0.5f,0f,0.5f),new Vector3(2.5f,0f,2.5f)});
+        CreateAIAgent(Vector3.right, new List<Vector3> {new Vector3(0.5f,0f,0.5f),new Vector3(2.5f,0f,5.5f)});
         
         CreateAIAgent(Vector3.forward, new List<Vector3> {new Vector3(5.5f,0f,0.5f),new Vector3(2.5f,0f,2.5f), new Vector3(2.5f,0.0f, 3.5f)});
     }
@@ -325,11 +325,6 @@ public class GridController : PersistableObject
             throw new InvalidOperationException("Not enough patrol targets.");
         }
         Cell startCell = GetCellFromWorldPosition(keyPatrolTargets[0]);
-        
-        if (keyPatrolTargets[0] != keyPatrolTargets[keyPatrolTargets.Count - 1])
-        {
-            keyPatrolTargets.Add(keyPatrolTargets[0]);
-        }
         
         AgentController aiAgent =
             Instantiate(ObjectFactory.Get(4) as AIAgentController, keyPatrolTargets[0], Quaternion.identity)

@@ -91,8 +91,6 @@ public class AIAgentController : AgentController
         
         Cell newCellDivertion = GridController.GetRandomAccessibleNeighbour(GetCurrentCell(), GetMovementDirection(), problemCell);
 
-        // newCellDivertion = GridController.GetRandomAccessibleNeighbour(newCellDivertion, GetMovementDirection(), problemCell);
-
         if (newCellDivertion != null)
         {
             targetPositions.Insert(1,newCellDivertion.transform.position);
@@ -202,11 +200,9 @@ public class AIAgentController : AgentController
             {
                 if (currentCell.GetCentre() == activePath.pathCells[0].GetCentre())
                 {
+                    Cell reorderedCell = activePath.pathCells[0];
                     activePath.pathCells.RemoveAt(0);
-                }
-                for (int i = 0; i < activePath.pathCells.Count; i++)
-                {
-                    activePath.pathCells[i].SetAIAgentETA(i, this);
+                    activePath.pathCells.Add(reorderedCell);
                 }
 
                 if (activePath.pathCells.Count > 0)
@@ -267,6 +263,11 @@ public class AIAgentController : AgentController
                 {
                     ChangePath();
                 }
+            }
+            
+            for (int i = 0; i < activePath.pathCells.Count; i++)
+            {
+                activePath.pathCells[i].SetAIAgentETA(i, this);
             }
 
             yield return null;

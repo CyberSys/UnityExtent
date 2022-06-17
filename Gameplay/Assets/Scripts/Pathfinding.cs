@@ -54,18 +54,16 @@ public class Pathfinding : MonoBehaviour
                 HashSet<Cell> closedSet = new HashSet<Cell>();
                 openSet.Add(originalStartCell);
 
-                Cell previousCell = originalStartCell;
-                
                 while (openSet.Count > 0)
                 {
                     Cell currentCell = openSet.RemoveFirst();
 
-                    Vector3 directionChange = currentCell.GetCentre() - previousCell.GetCentre();
+                    Vector3 directionChange = currentCell.GetCentre() - currentCell.parent.GetCentre();
 
-                    // if (directionChange.magnitude > 1)
-                    // {
-                    //     throw new InvalidOperationException("Something went wrong with path calculation.");
-                    // }
+                    if (directionChange.magnitude > 1)
+                    {
+                        throw new InvalidOperationException("Something went wrong with path calculation.");
+                    }
                     
                     bool validMovement = false;
 
@@ -92,8 +90,6 @@ public class Pathfinding : MonoBehaviour
                         openSet = new Heap<Cell>(_gridController.MaxSize);
                         closedSet = new HashSet<Cell>();
                         
-                        //previousCell = currentCell;
-                        
                         bool validSection = false;
 
                         if (pathCells.Count > 0)
@@ -115,7 +111,7 @@ public class Pathfinding : MonoBehaviour
 
                         if (targetsFound == test) // start position in index 0, so ignore 1
                         {
-                            if (pathCells[0] == pathCells[pathCells.Count - 1])
+                            if (pathCells.Count > 1 && pathCells[0] == pathCells[pathCells.Count - 1])
                             {
                                 sw.Stop();
                                 // print("Path found: " + sw.ElapsedMilliseconds + "ms.");
@@ -125,6 +121,18 @@ public class Pathfinding : MonoBehaviour
                         }
 
                         targetsFound++;
+
+                        if (pathCells.Count > 1 && keyPatrolTargets[0] != keyPatrolTargets[keyPatrolTargets.Count - 1])
+                        {
+                            Vector3 reverseStartingDirection = (pathCells[0].transform.position - pathCells[1].transform.position);
+
+                            Vector3 endPatrolPosition = originalStartCell.transform.position + reverseStartingDirection;
+
+                            keyPatrolTargets.Add(
+                                _gridController.GetCellFromWorldPosition(endPatrolPosition).transform.position);
+                            
+                            keyPatrolTargets.Add(keyPatrolTargets[0]);
+                        }
                         
                         targetCell = _gridController.GetCellFromWorldPosition(keyPatrolTargets[targetsFound]);
                         
@@ -137,7 +145,6 @@ public class Pathfinding : MonoBehaviour
 
                     foreach (var neighbour in neighbours)
                     {
-                        // neighbour.IsAccessibleFromCell(currentCell, currentMovementDirection);
                         if (!neighbour.IsWalkable() || neighbour.IsOccupiedByAnotherAgent(agentID) || closedSet.Contains(neighbour))
                         {
                             continue;
@@ -162,8 +169,6 @@ public class Pathfinding : MonoBehaviour
                                 openSet.UpdateItem(neighbour);
                         }
                     }
-
-                    previousCell = currentCell;
                 }
             }
             else
@@ -171,11 +176,10 @@ public class Pathfinding : MonoBehaviour
                 throw new InvalidOperationException("Condition not handled.");
             }
 
-            if (pathSuccess == true)
+            if (pathSuccess)
             {
                 currentMovementDirection = startingMovementDirection;
                 ValidateMovement(ref currentMovementDirection, out pathSuccess, originalStartCell, pathCells);
-                // pathCells.Insert(0, originalStartCell);
             }
         }
 
