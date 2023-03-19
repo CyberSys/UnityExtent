@@ -113,20 +113,51 @@ public class Cell : PersistableObject, IHeapItem<Cell>
     private bool rightBoundEnabled = false;
     private bool accessible = false; // can player enter
 
-    private Dictionary<AgentController, int> agentETAs;
+    private Dictionary<AgentController, List<int>> agentETAs;
 
     public void SetAIAgentETA(int numberOfCellsAway, AIAgentController agent)
     {
         if (agentETAs.Count > 0)
         {
-            agentETAs.Remove(agent); // too late to do something, going past, remove it
+            foreach (var agentWithEtA in agentETAs)
+            {
+                // if(agentETAs)
+                foreach (var distance in agentWithEtA.Value)
+                {
+                    int distanceBetweenEtAs = Math.Abs(distance - numberOfCellsAway);
+                    if (distanceBetweenEtAs < 2 && agentWithEtA.Key.ID != agent.ID)
+                    {
+                        agent.Redirect(this);
+                        agentETAs.Remove(agent);
+                    }
+                }
+            }
         }
-        agentETAs[agent] = numberOfCellsAway;
-
-        if (agentETAs.Values.Distinct().Count() < agentETAs.Count)
+        // else
+        // {
+        
+        if (agentETAs.ContainsKey(agent))
         {
-            agent.Redirect(this);
+            var newDistances = agentETAs[agent];
+            if (!newDistances.Contains(numberOfCellsAway))
+            {
+                newDistances.Add(numberOfCellsAway);
+                agentETAs[agent] = newDistances;
+            }
         }
+        else
+        {
+            List<int> newDistance = new List<int> { numberOfCellsAway };
+            agentETAs[agent] = newDistance;
+        }
+        // }
+
+        // agentETAs[agent] = numberOfCellsAway;
+
+        // if (agentETAs.Values.Distinct().Count() < agentETAs.Count)
+        // {
+        //     agent.Redirect(this);
+        // }
     }
     
     public int movementPenalty;
@@ -157,7 +188,7 @@ public class Cell : PersistableObject, IHeapItem<Cell>
         int x = (int) Math.Floor(centrePosition.x);
         int y = (int) Math.Floor(centrePosition.z);
         gridPosition = new GridPosition(x,y);
-        agentETAs = new Dictionary<AgentController, int>();
+        agentETAs = new Dictionary<AgentController, List<int>>();
     }
 
     public Vector3 GetCentre()
@@ -318,11 +349,14 @@ public class Cell : PersistableObject, IHeapItem<Cell>
 
             text.text = "";
 
-            foreach (var eta in agentETAs)
+            foreach (var etaInfo in agentETAs)
             {
-                if (text != null)
+                foreach (var eta in etaInfo.Value)
                 {
-                    text.text += eta.Key.name + ": " + eta.Value + "\n";
+                    if (text != null)
+                    {
+                        text.text += etaInfo.Key.name + ": " + eta + "\n";
+                    }
                 }
             }
         }
