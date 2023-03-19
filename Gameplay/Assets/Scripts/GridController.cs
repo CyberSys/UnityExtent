@@ -330,6 +330,7 @@ public class GridController : PersistableObject
             Instantiate(ObjectFactory.Get(4) as AIAgentController, keyPatrolTargets[0], Quaternion.identity)
                 .GetComponent<AgentController>();
         aiAgent.ID = _agentCount++;
+        aiAgent.Color = Random.ColorHSV(0f, 1f, 1f, 1f, 0.5f, 1f);
         aiAgent.name = "AI " + _agentCount;
         aiAgent.SetStartingMovementDirection(movementDirection);
         aiAgent.SetStartingCell(startCell.gridPosition.X, startCell.gridPosition.Y);
@@ -337,7 +338,7 @@ public class GridController : PersistableObject
         LineRenderer lr = aiAgent.GetComponent<LineRenderer>();
         if (lr)
         {
-            lr.material.SetColor("_EmissionColor", Random.ColorHSV(0f, 1f, 1f, 1f, 0.5f, 1f));
+            lr.material.SetColor("_EmissionColor", aiAgent.Color);
         }
 
         AIAgentController aiAgentController = (AIAgentController) aiAgent;

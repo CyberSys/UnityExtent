@@ -189,11 +189,18 @@ public class AgentController : PersistableObject
     public Text DebugText;
 
     private int id;
+    private Color color;
 
     public int ID
     {
         get => id;
         set => id = value;
+    }
+
+    public Color Color
+    {
+        get => color;
+        set => color = value;
     }
 
     public void Awake()

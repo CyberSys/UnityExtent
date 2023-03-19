@@ -344,19 +344,32 @@ public class Cell : PersistableObject, IHeapItem<Cell>
         if (canvas != null)
         {
             canvas.GetComponent<Canvas>().enabled = true;
-            GameObject pathText = GETChildGameObjectWithName(canvas, "Path Index");
-            Text text = pathText.GetComponent<Text>();
+
+            AICanvasManager aiCanvasManager = canvas.GetComponent<AICanvasManager>();
+            Text text = aiCanvasManager.debugText;
+
+            while (text.transform.parent.childCount > 1) {
+                DestroyImmediate(text.transform.parent.GetChild(1).gameObject);
+            }
 
             text.text = "";
+
+            int numberInList = 0;
 
             foreach (var etaInfo in agentETAs)
             {
                 foreach (var eta in etaInfo.Value)
                 {
-                    if (text != null)
-                    {
-                        text.text += etaInfo.Key.name + ": " + eta + "\n";
-                    }
+                    text = Instantiate(text, text.transform.parent);
+                    RectTransform rectTransform = text.GetComponent<RectTransform>();
+                    rectTransform.anchoredPosition = new Vector2(rectTransform.anchoredPosition.x,
+                        rectTransform.anchoredPosition.y - rectTransform.rect.height);
+                    // rectTransform.rect.Set(rectTransform.rect.x, rectTransform.rect.y - (numberInList * rectTransform.rect.height),rectTransform.rect.width, rectTransform.rect.height);
+                    text.text = "";
+                    text.color = etaInfo.Key.Color;
+                    text.text = "" + etaInfo.Key.ID + " : " + eta;
+                    text.name = text.text;
+                    numberInList += 1;
                 }
             }
         }
