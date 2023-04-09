@@ -10,14 +10,18 @@ using UnityEngine.UI;
 public class AgentAction
 {
     public List<KeyCode> KeyBindings;
+    public List<TouchGesture> GestureBindings;
 
     public bool InputActive;
 
     public bool InputChanged;
     
-    public AgentAction(List<KeyCode> keyBindings)
+    
+    
+    public AgentAction(List<KeyCode> keyBindings, List<TouchGesture> gestureBindings)
     {
         KeyBindings = keyBindings;
+        GestureBindings = gestureBindings;
         InputActive = false;
         InputChanged = false;
     }
@@ -41,6 +45,16 @@ public class AgentAction
                     break;
                 }
             }
+
+            foreach (var touchGesture in GestureBindings)
+            {
+                if(InputController.activeGestures.Contains(touchGesture))
+                {
+                    InputActive = true;
+                    InputChanged = true;
+                    break;
+                }
+            }
         }
         else
         {
@@ -53,7 +67,8 @@ public class AgentAction
                 }
             }
 
-            if (keybindUp == KeyBindings.Count && !InputChanged)
+            if (keybindUp == KeyBindings.Count && !InputChanged ||
+                InputController.activeGestures.Count == 1 && !InputChanged && InputController.activeGestures.Contains(TouchGesture.SwipeNone))
             {
                 // Debug.Log(this.ToString() +" Key Up.");
                 InputActive = false;
@@ -73,7 +88,7 @@ public class MovementAction : AgentAction
 
     public Movement action;
     
-    public MovementAction(List<KeyCode> keyBindings, Movement movementAction) : base(keyBindings)
+    public MovementAction(List<KeyCode> keyBindings, List<TouchGesture> gestureBindings, Movement movementAction) : base(keyBindings, gestureBindings)
     {
         action = movementAction;
     }
@@ -97,10 +112,18 @@ public class CombatAction : AgentAction
     public enum Combat {Weapon0,Weapon1}
 
     public Combat action;
-    public CombatAction(List<KeyCode> keyBindings, Combat combatAction) : base(keyBindings)
+    public CombatAction(List<KeyCode> keyBindings, List<TouchGesture> gestureBindings, Combat combatAction) : base(keyBindings, gestureBindings)
     {
         action = combatAction;
     }
+}
+public enum TouchGesture
+{
+    SwipeNone = 0,
+    SwipeUp = 1,
+    SwipeDown = 2,
+    SwipeRight = 3,
+    SwipeLeft = 4,
 }
 public class InputController
 {
@@ -108,14 +131,26 @@ public class InputController
 
     public List<MovementAction.Movement> MovementQueue = new List<MovementAction.Movement>();
 
+    public static List<TouchGesture> activeGestures = new List<TouchGesture>();
+
+    private Vector2 fingerDown;
+    private Vector2 fingerUp;
+    public bool detectSwipeOnlyAfterRelease = false;
+
+    public float SWIPE_THRESHOLD = 20f;
+
     public InputController()
     {
-        Actions.Add(new MovementAction(new List<KeyCode>(new KeyCode[] {KeyCode.A, KeyCode.LeftArrow}), MovementAction.Movement.TurnLeft));
-        Actions.Add(new MovementAction(new List<KeyCode>(new KeyCode[] {KeyCode.D, KeyCode.RightArrow}), MovementAction.Movement.TurnRight));
+        Actions.Add(new MovementAction(new List<KeyCode>(new KeyCode[] {KeyCode.A, KeyCode.LeftArrow}), 
+            new List<TouchGesture>(new TouchGesture[] { TouchGesture.SwipeLeft }), MovementAction.Movement.TurnLeft));
+        Actions.Add(new MovementAction(new List<KeyCode>(new KeyCode[] {KeyCode.D, KeyCode.RightArrow}),
+            new List<TouchGesture>(new TouchGesture[] { TouchGesture.SwipeRight }), MovementAction.Movement.TurnRight));
     }
         
     public void Update()
     {
+        ProcessTouchInput();
+            
         foreach (var agentAction in Actions)
         {
             agentAction.Update();
@@ -127,6 +162,8 @@ public class InputController
                 {
                     MovementQueue.Add(agentMovementAction.action);
                     Debug.Log("Added " + agentMovementAction.ToString() +" to the movement queue.");
+                    activeGestures.Clear();
+                    activeGestures.Add(TouchGesture.SwipeNone);
                 }
             }
                 
@@ -136,6 +173,79 @@ public class InputController
                     
             }
         }
+    }
+
+    public void ProcessTouchInput()
+    {
+        foreach (Touch touch in Input.touches)
+        {
+            if (touch.phase == TouchPhase.Began)
+            {
+                fingerUp = touch.position;
+                fingerDown = touch.position;
+            }
+
+            //Detects Swipe while finger is still moving
+            if (touch.phase == TouchPhase.Moved)
+            {
+                if (!detectSwipeOnlyAfterRelease)
+                {
+                    fingerDown = touch.position;
+                    ProcessTouchGesture();
+                }
+            }
+
+            //Detects swipe after finger is released
+            if (touch.phase == TouchPhase.Ended)
+            {
+                fingerDown = touch.position;
+                ProcessTouchGesture();
+            }
+        }
+    }
+    
+    void ProcessTouchGesture()
+    {
+        activeGestures.Clear();
+        //Check if Vertical swipe
+        if (verticalMove() > SWIPE_THRESHOLD && verticalMove() > horizontalValMove())
+        {
+            //Debug.Log("Vertical");
+            if (fingerDown.y - fingerUp.y > 0)//up swipe
+            {
+                activeGestures.Add(TouchGesture.SwipeUp);
+            }
+            else if (fingerDown.y - fingerUp.y < 0)//Down swipe
+            {
+                activeGestures.Add(TouchGesture.SwipeDown);
+            }
+            fingerUp = fingerDown;
+        }
+
+        //Check if Horizontal swipe
+        else if (horizontalValMove() > SWIPE_THRESHOLD && horizontalValMove() > verticalMove())
+        {
+            //Debug.Log("Horizontal");
+            if (fingerDown.x - fingerUp.x > 0)//Right swipe
+            {
+                activeGestures.Add(TouchGesture.SwipeRight);
+            }
+            else if (fingerDown.x - fingerUp.x < 0)//Left swipe
+            {
+                activeGestures.Add(TouchGesture.SwipeLeft);
+            }
+            fingerUp = fingerDown;
+        }
+    }
+    
+    float verticalMove()
+    {
+        return Mathf.Abs(fingerDown.y - fingerUp.y);
+    }
+
+    float horizontalValMove()
+    {
+        return Mathf.Abs(fingerDown.x - fingerUp.x);
     }
 
     public MovementAction.Movement ProccessMovementQueue()
@@ -526,7 +636,7 @@ public class AgentController : PersistableObject
             GetComponent<Rigidbody>().position = new Vector3
             (
                 Mathf.Clamp(GetComponent<Rigidbody>().position.x, BoxCollider.bounds.min.x, BoxCollider.bounds.max.x),
-                0.075f,
+                0.5f,
                 Mathf.Clamp(GetComponent<Rigidbody>().position.z, BoxCollider.bounds.min.z, BoxCollider.bounds.max.z)
             );
 

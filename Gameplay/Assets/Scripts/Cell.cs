@@ -114,50 +114,54 @@ public class Cell : PersistableObject, IHeapItem<Cell>
     private bool accessible = false; // can player enter
 
     private Dictionary<AgentController, List<int>> agentETAs;
+    private AICanvasManager aiCanvasManager;
 
     public void SetAIAgentETA(int numberOfCellsAway, AIAgentController agent)
     {
         if (agentETAs.Count > 0)
         {
-            foreach (var agentWithEtA in agentETAs)
+            bool agentRedirect = false;
+            // foreach (var agentWithEtA in agentETAs)
+            // {
+            //     foreach (var distance in agentWithEtA.Value)
+            //     {
+            //         int distanceBetweenEtAs = Math.Abs(distance - numberOfCellsAway);
+            //         if (distanceBetweenEtAs < 1 && agentWithEtA.Key.ID != agent.ID)
+            //         {
+            //             agent.Redirect(this);
+            //             agentRedirect = true;
+            //         }
+            //     }
+            // }
+            
+            if (agentRedirect && agentETAs.ContainsKey(agent))
             {
-                // if(agentETAs)
-                foreach (var distance in agentWithEtA.Value)
+                agentETAs.Remove(agent);
+                return;
+            }
+
+            if (agentETAs.ContainsKey(agent))
+            {
+                var newDistances = agentETAs[agent];
+                if (!newDistances.Contains(numberOfCellsAway))
                 {
-                    int distanceBetweenEtAs = Math.Abs(distance - numberOfCellsAway);
-                    if (distanceBetweenEtAs < 2 && agentWithEtA.Key.ID != agent.ID)
-                    {
-                        agent.Redirect(this);
-                        agentETAs.Remove(agent);
-                    }
+                    newDistances.Add(numberOfCellsAway);
+                    agentETAs[agent] = newDistances;
                 }
             }
-        }
-        // else
-        // {
-        
-        if (agentETAs.ContainsKey(agent))
-        {
-            var newDistances = agentETAs[agent];
-            if (!newDistances.Contains(numberOfCellsAway))
+            else
             {
-                newDistances.Add(numberOfCellsAway);
-                agentETAs[agent] = newDistances;
+                // can pass through the cell more than once 
+                List<int> newDistance = new List<int> { numberOfCellsAway };
+                agentETAs[agent] = newDistance;
             }
         }
         else
         {
+            // can pass through the cell more than once 
             List<int> newDistance = new List<int> { numberOfCellsAway };
             agentETAs[agent] = newDistance;
         }
-        // }
-
-        // agentETAs[agent] = numberOfCellsAway;
-
-        // if (agentETAs.Values.Distinct().Count() < agentETAs.Count)
-        // {
-        //     agent.Redirect(this);
-        // }
     }
     
     public int movementPenalty;
@@ -217,46 +221,46 @@ public class Cell : PersistableObject, IHeapItem<Cell>
     
     public void SetPathCellIndicator(bool inPath)
     {
-        GETChildGameObjectWithName(gameObject, "Path").GetComponent<MeshRenderer>().enabled = inPath;
+        //GETChildGameObjectWithName(gameObject, "Path").GetComponent<MeshRenderer>().enabled = inPath;
     }
 
     private void SetBlocker(bool isWalkable)
     {
-        GETChildGameObjectWithName(gameObject, "Left Blocker").GetComponent<MeshRenderer>().enabled = !isWalkable;
-        GETChildGameObjectWithName(gameObject, "Right Blocker").GetComponent<MeshRenderer>().enabled = !isWalkable;
-        GETChildGameObjectWithName(gameObject, "Forward Blocker").GetComponent<MeshRenderer>().enabled = !isWalkable;
-        GETChildGameObjectWithName(gameObject, "Back Blocker").GetComponent<MeshRenderer>().enabled = !isWalkable;
+        //GETChildGameObjectWithName(gameObject, "Left Blocker").GetComponent<MeshRenderer>().enabled = !isWalkable;
+        //GETChildGameObjectWithName(gameObject, "Right Blocker").GetComponent<MeshRenderer>().enabled = !isWalkable;
+        //GETChildGameObjectWithName(gameObject, "Forward Blocker").GetComponent<MeshRenderer>().enabled = !isWalkable;
+        //GETChildGameObjectWithName(gameObject, "Back Blocker").GetComponent<MeshRenderer>().enabled = !isWalkable;
     }
     
     public void SetBackBound(bool enableBackBound)
     {
         backBoundEnabled = enableBackBound;
-        GETChildGameObjectWithName(gameObject, "Back").GetComponent<MeshRenderer>().enabled = !backBoundEnabled;
-        GETChildGameObjectWithName(gameObject, "Back Bound").GetComponent<MeshRenderer>().enabled = backBoundEnabled;
+        //GETChildGameObjectWithName(gameObject, "Back").GetComponent<MeshRenderer>().enabled = !backBoundEnabled;
+        //GETChildGameObjectWithName(gameObject, "Back Bound").GetComponent<MeshRenderer>().enabled = backBoundEnabled;
         GETChildGameObjectWithName(gameObject, "Back Bound").GetComponent<BoxCollider>().enabled = backBoundEnabled;
     }
     
     public void SetForwardBound(bool enableForwardBound)
     {
         forwardBoundEnabled = enableForwardBound;
-        GETChildGameObjectWithName(gameObject, "Forward").GetComponent<MeshRenderer>().enabled = !forwardBoundEnabled;
-        GETChildGameObjectWithName(gameObject, "Forward Bound").GetComponent<MeshRenderer>().enabled = forwardBoundEnabled;
+        //GETChildGameObjectWithName(gameObject, "Forward").GetComponent<MeshRenderer>().enabled = !forwardBoundEnabled;
+        //GETChildGameObjectWithName(gameObject, "Forward Bound").GetComponent<MeshRenderer>().enabled = forwardBoundEnabled;
         GETChildGameObjectWithName(gameObject, "Forward Bound").GetComponent<BoxCollider>().enabled = forwardBoundEnabled;
     }
 
     public void SetLeftBound(bool enableLeftBound)
     {
         leftBoundEnabled = enableLeftBound;
-        GETChildGameObjectWithName(gameObject, "Left").GetComponent<MeshRenderer>().enabled = !leftBoundEnabled;
-        GETChildGameObjectWithName(gameObject, "Left Bound").GetComponent<MeshRenderer>().enabled = leftBoundEnabled;
+        //GETChildGameObjectWithName(gameObject, "Left").GetComponent<MeshRenderer>().enabled = !leftBoundEnabled;
+        //GETChildGameObjectWithName(gameObject, "Left Bound").GetComponent<MeshRenderer>().enabled = leftBoundEnabled;
         GETChildGameObjectWithName(gameObject, "Left Bound").GetComponent<BoxCollider>().enabled = leftBoundEnabled;
     }
 
     public void SetRightBound(bool enableRightBound)
     {
         rightBoundEnabled = enableRightBound;
-        GETChildGameObjectWithName(gameObject, "Right").GetComponent<MeshRenderer>().enabled = !rightBoundEnabled;
-        GETChildGameObjectWithName(gameObject, "Right Bound").GetComponent<MeshRenderer>().enabled = rightBoundEnabled;
+        //GETChildGameObjectWithName(gameObject, "Right").GetComponent<MeshRenderer>().enabled = !rightBoundEnabled;
+        //GETChildGameObjectWithName(gameObject, "Right Bound").GetComponent<MeshRenderer>().enabled = rightBoundEnabled;
         GETChildGameObjectWithName(gameObject, "Right Bound").GetComponent<BoxCollider>().enabled = rightBoundEnabled;
     }
 
@@ -340,16 +344,26 @@ public class Cell : PersistableObject, IHeapItem<Cell>
     {
         SetWalkable(walkable);
 
-        GameObject canvas = GETChildGameObjectWithName(gameObject, "AI Canvas");
-        if (canvas != null)
+        return;
+
+        if (aiCanvasManager == null)
         {
-            canvas.GetComponent<Canvas>().enabled = true;
+            GameObject canvas = GETChildGameObjectWithName(gameObject, "AI Canvas");
+            if (canvas != null)
+            {
+                canvas.GetComponent<Canvas>().enabled = true;
 
-            AICanvasManager aiCanvasManager = canvas.GetComponent<AICanvasManager>();
+                aiCanvasManager = canvas.GetComponent<AICanvasManager>();
+            }
+        }
+        else
+        {
             Text text = aiCanvasManager.debugText;
+            Transform textList = text.transform.parent;
 
-            while (text.transform.parent.childCount > 1) {
-                DestroyImmediate(text.transform.parent.GetChild(1).gameObject);
+            while (textList.childCount - 1 > agentETAs.Count)
+            {
+                DestroyImmediate(textList.GetChild(1).gameObject);
             }
 
             text.text = "";
@@ -358,18 +372,29 @@ public class Cell : PersistableObject, IHeapItem<Cell>
 
             foreach (var etaInfo in agentETAs)
             {
-                foreach (var eta in etaInfo.Value)
+                for (int i = 0; i < etaInfo.Value.Count; i++)
                 {
-                    text = Instantiate(text, text.transform.parent);
-                    RectTransform rectTransform = text.GetComponent<RectTransform>();
-                    rectTransform.anchoredPosition = new Vector2(rectTransform.anchoredPosition.x,
-                        rectTransform.anchoredPosition.y - rectTransform.rect.height);
-                    // rectTransform.rect.Set(rectTransform.rect.x, rectTransform.rect.y - (numberInList * rectTransform.rect.height),rectTransform.rect.width, rectTransform.rect.height);
-                    text.text = "";
-                    text.color = etaInfo.Key.Color;
-                    text.text = "" + etaInfo.Key.ID + " : " + eta;
-                    text.name = text.text;
-                    numberInList += 1;
+                    if (textList.childCount < agentETAs.Count)
+                        text = Instantiate(text, text.transform.parent);
+                    else if(textList.childCount > i)
+                        text = textList.GetChild(i).GetComponent<Text>();
+                    // else
+                    // {
+                    //     break;
+                    // }
+
+                    if (text != null)
+                    {
+                        // RectTransform rectTransform = text.GetComponent<RectTransform>();
+                        // rectTransform.anchoredPosition = new Vector2(rectTransform.anchoredPosition.x,
+                        //     rectTransform.anchoredPosition.y - rectTransform.rect.height);
+                        // rectTransform.rect.Set(rectTransform.rect.x, rectTransform.rect.y - (numberInList * rectTransform.rect.height),rectTransform.rect.width, rectTransform.rect.height);
+                        text.text = "";
+                        text.color = etaInfo.Key.Color;
+                        text.text = "" + etaInfo.Key.ID + " : " + etaInfo.Value[i];
+                        text.name = text.text;
+                        numberInList += 1;
+                    }
                 }
             }
         }

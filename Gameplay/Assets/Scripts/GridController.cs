@@ -207,12 +207,12 @@ public class GridController : PersistableObject
             List<Cell> row = new List<Cell>();
             for (int j = 0; j < columnNumber; j++)
             {
-                Cell newCell = Instantiate(cellPrefab, new Vector3(i + 0.5f, 0.075f, j + 0.5f), Quaternion.identity);
+                Cell newCell = Instantiate(cellPrefab, new Vector3(i + 0.5f, 0.5f, j + 0.5f), Quaternion.identity);
                 
                 newCell.SetNextCellIndicator(false);
                 newCell.SetSpawn(false);
                 
-                newCell.SetCentre(new Vector3(i + 0.5f, 0.075f, j + 0.5f));
+                newCell.SetCentre(new Vector3(i + 0.5f, 0.5f, j + 0.5f));
 
                 // if(i == 2 && j < 5 || i == 4 && j > 2 || i == 6 && j < 8)
                 //     newCell.SetWalkable(false);
@@ -301,9 +301,9 @@ public class GridController : PersistableObject
         
         Camera.main.GetComponent<CameraController>().PlayerTransform = _player.transform;
 
-        CreateAIAgent(Vector3.right, new List<Vector3> {new Vector3(0.5f,0f,0.5f),new Vector3(2.5f,0f,5.5f)});
+        CreateAIAgent(Vector3.left, new List<Vector3> {new Vector3(0.5f,0.0f,4.5f),new Vector3(0.5f,0.0f,0.5f)});
         
-        CreateAIAgent(Vector3.forward, new List<Vector3> {new Vector3(5.5f,0f,0.5f),new Vector3(2.5f,0f,2.5f), new Vector3(2.5f,0.0f, 3.5f)});
+        CreateAIAgent(Vector3.right, new List<Vector3> {new Vector3(0.5f,0.0f,2.5f),new Vector3(5.5f,0.0f,0.5f)});
     }
 
     private void CreatePlayerAgent(Vector3 position, Vector3 movementDirection)

@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Policy;
+// using System.Security.Policy;
 using UnityEngine;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
@@ -27,6 +27,7 @@ public class AIAgentController : AgentController
     // private bool patrolJoined = false;
     
     private bool patrolling = false;
+    private bool waitingForPath = false;
 
     private Text debugConsole;
 
@@ -71,6 +72,11 @@ public class AIAgentController : AgentController
 
     public void Redirect(Cell problemCell)
     {
+        if (waitingForPath)
+            return;
+
+        waitingForPath = true;
+        
         List<Vector3> targetPositions = new List<Vector3>(originalKeyPatrolTargets);
 
         for (int i = 0; i < targetPositions.Count; i++)
@@ -110,6 +116,7 @@ public class AIAgentController : AgentController
     public void OnPathFound(List<Cell> pathCells, bool pathSuccessful) {
         if (pathSuccessful)
         {
+            waitingForPath = false;
             patrol.SetPatrolPath(new Path(pathCells));
             ChangePath();
         }
@@ -160,8 +167,8 @@ public class AIAgentController : AgentController
         {
             yield return new WaitForSeconds(.3f);
         }
-        
-        // Following call is only ever calculating a path the the first target, not every target in the list, it's broken atm!
+
+        waitingForPath = true;
         PathRequestManager.RequestPath(new PathRequest(base.ID, this.GetStartingMovementDirection(), keyPatrolTargets, OnPathFound));
     }
 
@@ -267,7 +274,15 @@ public class AIAgentController : AgentController
             
             for (int i = 0; i < activePath.pathCells.Count; i++)
             {
-                activePath.pathCells[i].SetAIAgentETA(i, this);
+                Cell pathCell = activePath.pathCells[i];
+                if (pathCell != null)
+                {
+                    pathCell.SetAIAgentETA(i, this);
+                }
+                else
+                {
+                    int k = 0;
+                }
             }
 
             yield return null;

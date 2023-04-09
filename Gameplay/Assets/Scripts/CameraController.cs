@@ -7,7 +7,7 @@ public class CameraController : MonoBehaviour
     public bool rotateCamera = false;
     public Transform PlayerTransform;
 
-    public Vector3 CameraOffset = new Vector3(0, 6.5f, 0);
+    public Vector3 CameraOffset = new Vector3(0, 14.5f, 0);
 
     [Range(0.01f, 1.0f)] public float SmoothFactor = 0.5f;
     

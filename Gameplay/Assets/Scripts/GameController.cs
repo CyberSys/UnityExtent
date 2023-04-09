@@ -65,76 +65,76 @@ public class GameController : PersistableObject
     // Update is called once per frame
     void Update()
     {
-        if (Time.timeScale > 0 & grids.Count > 0)
-        {
-            // check whether to add new frame
-            if (rewindData.Count < 1 ||
-                GetDeltaTime(DateTime.Now, rewindData.ElementAt(0).frameTime).Milliseconds >= 30)
-            {
-                FrameData newFrame = new FrameData();
-                newFrame.frameTime = DateTime.Now;
-                newFrame.grid = grids[0];
-                rewindData.Push(newFrame);
-            }
-        }
+        // if (Time.timeScale > 0 & grids.Count > 0)
+        // {
+        //     // check whether to add new frame
+        //     if (rewindData.Count < 1 ||
+        //         GetDeltaTime(DateTime.Now, rewindData.ElementAt(0).frameTime).Milliseconds >= 30)
+        //     {
+        //         FrameData newFrame = new FrameData();
+        //         newFrame.frameTime = DateTime.Now;
+        //         newFrame.grid = grids[0];
+        //         rewindData.Push(newFrame);
+        //     }
+        // }
         
         if (Input.GetKeyDown(createKey)) {
             CreateGrid();
         }
-        else if (Input.GetKeyDown(saveKey)) {
-            storage.Save(this);
-        }
-        else if (Input.GetKeyDown(loadKey)) {
-            BeginNewGame();
-            storage.Load(this);
-        }
-        else if (Input.GetKeyDown(pauseKey))
-        {
-            if (Time.timeScale > 0.0f)
-            {
-                playerPaused = true;
-            }
-            else
-            {
-                playerPaused = false;
-            }
-        }
-        else if (Input.GetKeyDown(rewindKey) && grids.Count > 0)
-        {
-            rewinding = !rewinding;
-        }
-
-        if (playerPaused)
-        {
-            Time.timeScale = 0.0f;
-            pausedText.GetComponent<Text>().enabled = true;
-            pausedBackground.GetComponent<Image>().enabled = true;
-        }
-        else
-        {
-            Time.timeScale = 1.0f;
-            pausedText.GetComponent<Text>().enabled = false;
-            pausedBackground.GetComponent<Image>().enabled = false;
-        }
+        // else if (Input.GetKeyDown(saveKey)) {
+        //     storage.Save(this);
+        // }
+        // else if (Input.GetKeyDown(loadKey)) {
+        //     BeginNewGame();
+        //     storage.Load(this);
+        // }
+        // else if (Input.GetKeyDown(pauseKey))
+        // {
+        //     if (Time.timeScale > 0.0f)
+        //     {
+        //         playerPaused = true;
+        //     }
+        //     else
+        //     {
+        //         playerPaused = false;
+        //     }
+        // }
+        // else if (Input.GetKeyDown(rewindKey) && grids.Count > 0)
+        // {
+        //     rewinding = !rewinding;
+        // }
+        //
+        // if (playerPaused)
+        // {
+        //     Time.timeScale = 0.0f;
+        //     pausedText.GetComponent<Text>().enabled = true;
+        //     pausedBackground.GetComponent<Image>().enabled = true;
+        // }
+        // else
+        // {
+        //     Time.timeScale = 1.0f;
+        //     pausedText.GetComponent<Text>().enabled = false;
+        //     pausedBackground.GetComponent<Image>().enabled = false;
+        // }
         
-        if (rewinding)
-        {
-            rewindSlider.SetActive(true);
-            rewindBackground.GetComponent<Image>().enabled = true;
-            if (rewindSlider.activeSelf)
-            {
-                float sliderValue = rewindSlider.GetComponent<Slider>().value;
-                storage.LoadFromMemory(this, sliderValue);
-            }
-        }
-        else
-        {
-            if(grids.Count > 0)
-                storage.SaveToMemory(this);
-            
-            rewindSlider.SetActive(false);
-            rewindBackground.GetComponent<Image>().enabled = false;
-        }
+        // if (rewinding)
+        // {
+        //     rewindSlider.SetActive(true);
+        //     rewindBackground.GetComponent<Image>().enabled = true;
+        //     if (rewindSlider.activeSelf)
+        //     {
+        //         float sliderValue = rewindSlider.GetComponent<Slider>().value;
+        //         storage.LoadFromMemory(this, sliderValue);
+        //     }
+        // }
+        // else
+        // {
+        //     if(grids.Count > 0)
+        //         storage.SaveToMemory(this);
+        //     
+        //     rewindSlider.SetActive(false);
+        //     rewindBackground.GetComponent<Image>().enabled = false;
+        // }
     }
     
     void BeginNewGame () {
@@ -143,7 +143,12 @@ public class GameController : PersistableObject
         }
         grids.Clear();
     }
-    
+
+    public void StartGame()
+    {
+        CreateGrid();
+    }
+
     void CreateGrid ()
     {
         GridController newGrid = Instantiate(storage.objectFactory.Get(1) as GridController);

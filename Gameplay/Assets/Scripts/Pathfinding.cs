@@ -122,14 +122,21 @@ public class Pathfinding : MonoBehaviour
 
                         targetsFound++;
 
-                        if (pathCells.Count > 1 && keyPatrolTargets[0] != keyPatrolTargets[keyPatrolTargets.Count - 1])
+                        float distanceBetweenTargets =
+                            Vector3.Distance(keyPatrolTargets[0], keyPatrolTargets[keyPatrolTargets.Count - 1]);
+
+                        if (pathCells.Count > 1 && distanceBetweenTargets > 0.5)
                         {
                             Vector3 reverseStartingDirection = (pathCells[0].transform.position - pathCells[1].transform.position);
 
                             Vector3 endPatrolPosition = originalStartCell.transform.position + reverseStartingDirection;
 
-                            keyPatrolTargets.Add(
-                                _gridController.GetCellFromWorldPosition(endPatrolPosition).transform.position);
+                            Cell penultimateCell = _gridController.GetCellFromWorldPosition(endPatrolPosition);
+
+                            float distance = Vector3.Distance(penultimateCell.transform.position, pathCells[0].transform.position);
+                            
+                            if(distance > 0.5)
+                                keyPatrolTargets.Add(penultimateCell.transform.position);
                             
                             keyPatrolTargets.Add(keyPatrolTargets[0]);
                         }
