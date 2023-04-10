@@ -15,9 +15,8 @@ public class AgentAction
     public bool InputActive;
 
     public bool InputChanged;
-    
-    
-    
+
+
     public AgentAction(List<KeyCode> keyBindings, List<TouchGesture> gestureBindings)
     {
         KeyBindings = keyBindings;
@@ -31,7 +30,7 @@ public class AgentAction
         return "Agent Action.";
     }
 
-    public void Update()
+    public void Update(TouchInputController touchInputController)
     {
         if (!InputActive) // don't look for new down if already down
         {
@@ -48,10 +47,11 @@ public class AgentAction
 
             foreach (var touchGesture in GestureBindings)
             {
-                if(InputController.activeGestures.Contains(touchGesture))
+                if(touchInputController.activeGestures.Contains(touchGesture))
                 {
                     InputActive = true;
                     InputChanged = true;
+                    touchInputController.activeGestures.Clear();
                     break;
                 }
             }
@@ -66,9 +66,19 @@ public class AgentAction
                     keybindUp--;
                 }
             }
+            
+            foreach (var touchGesture in GestureBindings)
+            {
+                if(touchInputController.activeGestures.Contains(touchGesture))
+                {
+                    InputActive = false;
+                    InputChanged = true;
+                    touchInputController.activeGestures.Clear();
+                    break;
+                }
+            }
 
-            if (keybindUp == KeyBindings.Count && !InputChanged ||
-                InputController.activeGestures.Count == 1 && !InputChanged && InputController.activeGestures.Contains(TouchGesture.SwipeNone))
+            if (keybindUp == KeyBindings.Count && !InputChanged)
             {
                 // Debug.Log(this.ToString() +" Key Up.");
                 InputActive = false;
@@ -125,56 +135,21 @@ public enum TouchGesture
     SwipeRight = 3,
     SwipeLeft = 4,
 }
-public class InputController
+
+public class TouchInputController
 {
-    public List<AgentAction> Actions = new List<AgentAction>();
-
-    public List<MovementAction.Movement> MovementQueue = new List<MovementAction.Movement>();
-
-    public static List<TouchGesture> activeGestures = new List<TouchGesture>();
+    public List<TouchGesture> activeGestures = new List<TouchGesture>();
 
     private Vector2 fingerDown;
     private Vector2 fingerUp;
     public bool detectSwipeOnlyAfterRelease = false;
 
-    public float SWIPE_THRESHOLD = 20f;
+    public float SWIPE_THRESHOLD = 100f;
 
-    public InputController()
-    {
-        Actions.Add(new MovementAction(new List<KeyCode>(new KeyCode[] {KeyCode.A, KeyCode.LeftArrow}), 
-            new List<TouchGesture>(new TouchGesture[] { TouchGesture.SwipeLeft }), MovementAction.Movement.TurnLeft));
-        Actions.Add(new MovementAction(new List<KeyCode>(new KeyCode[] {KeyCode.D, KeyCode.RightArrow}),
-            new List<TouchGesture>(new TouchGesture[] { TouchGesture.SwipeRight }), MovementAction.Movement.TurnRight));
-    }
-        
     public void Update()
     {
         ProcessTouchInput();
-            
-        foreach (var agentAction in Actions)
-        {
-            agentAction.Update();
-                
-            // process movement actions
-            if (agentAction is MovementAction agentMovementAction)
-            {
-                if (agentMovementAction.InputActive && agentMovementAction.InputChanged)
-                {
-                    MovementQueue.Add(agentMovementAction.action);
-                    Debug.Log("Added " + agentMovementAction.ToString() +" to the movement queue.");
-                    activeGestures.Clear();
-                    activeGestures.Add(TouchGesture.SwipeNone);
-                }
-            }
-                
-            // process combat actions
-            if(agentAction is CombatAction agentCombatAction)
-            {
-                    
-            }
-        }
     }
-
     public void ProcessTouchInput()
     {
         foreach (Touch touch in Input.touches)
@@ -191,7 +166,7 @@ public class InputController
                 if (!detectSwipeOnlyAfterRelease)
                 {
                     fingerDown = touch.position;
-                    ProcessTouchGesture();
+                    //ProcessTouchGesture();
                 }
             }
 
@@ -206,35 +181,36 @@ public class InputController
     
     void ProcessTouchGesture()
     {
-        activeGestures.Clear();
         //Check if Vertical swipe
         if (verticalMove() > SWIPE_THRESHOLD && verticalMove() > horizontalValMove())
         {
             //Debug.Log("Vertical");
-            if (fingerDown.y - fingerUp.y > 0)//up swipe
+            var difference = fingerDown.y - fingerUp.y;
+            if (difference > 0)//up swipe
             {
                 activeGestures.Add(TouchGesture.SwipeUp);
             }
-            else if (fingerDown.y - fingerUp.y < 0)//Down swipe
+            else if (difference < 0)//Down swipe
             {
                 activeGestures.Add(TouchGesture.SwipeDown);
             }
-            fingerUp = fingerDown;
+            fingerDown = fingerUp;
         }
 
         //Check if Horizontal swipe
         else if (horizontalValMove() > SWIPE_THRESHOLD && horizontalValMove() > verticalMove())
         {
             //Debug.Log("Horizontal");
-            if (fingerDown.x - fingerUp.x > 0)//Right swipe
+            var difference = fingerDown.x - fingerUp.x;
+            if (difference > 0)//Right swipe
             {
                 activeGestures.Add(TouchGesture.SwipeRight);
             }
-            else if (fingerDown.x - fingerUp.x < 0)//Left swipe
+            else if (difference < 0)//Left swipe
             {
                 activeGestures.Add(TouchGesture.SwipeLeft);
             }
-            fingerUp = fingerDown;
+            fingerDown = fingerUp;
         }
     }
     
@@ -246,6 +222,50 @@ public class InputController
     float horizontalValMove()
     {
         return Mathf.Abs(fingerDown.x - fingerUp.x);
+    }
+}
+public class InputController
+{
+    public AgentController AgentBeingControlled;
+    public List<AgentAction> Actions = new List<AgentAction>();
+
+    public List<MovementAction.Movement> MovementQueue = new List<MovementAction.Movement>();
+
+    private TouchInputController _touchInputController = new TouchInputController();
+
+    public InputController()
+    {
+    }
+        
+    public void Update()
+    {
+        _touchInputController.Update();
+        
+        foreach (var agentAction in Actions)
+        {
+            agentAction.Update(_touchInputController);
+                
+            // process movement actions
+            if (agentAction is MovementAction agentMovementAction)
+            {
+                if (agentMovementAction.InputActive && agentMovementAction.InputChanged)
+                {
+                    if (!MovementQueue.Contains(agentMovementAction.action))
+                    {
+                        MovementQueue.Add(agentMovementAction.action);
+                        Debug.Log("Added " + agentMovementAction.ToString() +" to the movement queue.");
+                        //activeGestures.Clear();
+                        //activeGestures.Add(TouchGesture.SwipeNone);
+                    }
+                }
+            }
+                
+            // process combat actions
+            if(agentAction is CombatAction agentCombatAction)
+            {
+                    
+            }
+        }
     }
 
     public MovementAction.Movement ProccessMovementQueue()
@@ -290,8 +310,8 @@ public class AgentController : PersistableObject
 
     public GridController GridController;
     
-    // private InputController _inputController;
-    
+    protected InputController _inputController = new InputController();
+
     private Cell.GridPosition _startingGridPosition = new Cell.GridPosition(0,0);
     private Cell _startingCell;
     private Vector3 _startMovementDirection = new Vector3();
@@ -357,6 +377,17 @@ public class AgentController : PersistableObject
 
     private Cell _currentCell;
     private bool currentCellChanged = false;
+    private int allowedMoves = 0;
+
+    public int GetAllowedMoves()
+    {
+        return allowedMoves;
+    }
+
+    public void MakeMove()
+    {
+        --allowedMoves;
+    }
 
     public virtual Cell GetCurrentCell()
     {
@@ -390,6 +421,7 @@ public class AgentController : PersistableObject
                 SetNextCell(x, y - 1);
 
             currentCellChanged = true;
+            allowedMoves = 1;
         }
     }
     
@@ -425,6 +457,7 @@ public class AgentController : PersistableObject
                 SetNextCell(_currentCell.gridPosition.X, _currentCell.gridPosition.Y - 1);
 
             currentCellChanged = true;
+            allowedMoves = 1;
         }
     }
     
@@ -627,6 +660,24 @@ public class AgentController : PersistableObject
     }
     public virtual void FixedUpdate ()
     {
+        if (GetAllowedMoves() > 0 && GetCurrentCell() != null)
+        {
+            _inputController.Update();
+
+            float distanceToCurrentCellCentre = Vector3.Distance(GetCurrentCell().GetCentre(), transform.position);
+
+            if (distanceToCurrentCellCentre < 0.05f && _inputController.MovementQueue.Count > 0)
+            {
+                MakeMove();
+                MovementAction.Movement movement = _inputController.ProccessMovementQueue();
+
+                if (movement != MovementAction.Movement.Forward)
+                {
+                    ChangeMovementDirection(movement);
+                }
+            }
+        }
+        
         if (GridController != null)
         {
             SetCurrentCell(GridController.GetCellFromWorldPosition(transform.position));

@@ -10,6 +10,16 @@ public class PlayerAgentController : AgentController
     public float WeaponRange = 5.0f;
     [ShowInInspector]
     public static List<AIAgentController> enemiesInRange = new List<AIAgentController>();
+
+    PlayerAgentController()
+    {
+        // This and touch input controller will need to change for multiplayer
+        _inputController.AgentBeingControlled = this;
+        _inputController.Actions.Add(new MovementAction(new List<KeyCode>(new KeyCode[] {KeyCode.A, KeyCode.LeftArrow}), 
+            new List<TouchGesture>(new TouchGesture[] { TouchGesture.SwipeLeft }), MovementAction.Movement.TurnLeft));
+        _inputController.Actions.Add(new MovementAction(new List<KeyCode>(new KeyCode[] {KeyCode.D, KeyCode.RightArrow}),
+            new List<TouchGesture>(new TouchGesture[] { TouchGesture.SwipeRight }), MovementAction.Movement.TurnRight));
+    }
     
     
     void UpdateEnemiesInRange()
@@ -26,34 +36,16 @@ public class PlayerAgentController : AgentController
         }
     }
     
-    private InputController _inputController;
+    
     
     // Start is called before the first frame update
     public override void Start()
     {
-        _inputController = new InputController();
-        
         base.Start();
     }
     
     public override void FixedUpdate ()
     {
-        if (GetCurrentCell() != null)
-        {
-            _inputController.Update();
-
-            float distanceToCurrentCellCentre = Vector3.Distance(GetCurrentCell().GetCentre(), transform.position);
-
-            if (distanceToCurrentCellCentre < 0.05f && _inputController.MovementQueue.Count > 0)
-            {
-                MovementAction.Movement movement = _inputController.ProccessMovementQueue();
-
-                if (movement != MovementAction.Movement.Forward)
-                {
-                    ChangeMovementDirection(movement);
-                }
-            }
-        }
         base.FixedUpdate();
         
         // Combat
